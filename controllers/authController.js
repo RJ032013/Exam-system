@@ -1,6 +1,5 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
-const { sendOtpEmail } = require('../utils/mailer');
 const crypto = require('crypto');
 
 // Render register page
@@ -26,21 +25,12 @@ exports.postRegister = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 12);
         const sessionToken = crypto.randomBytes(32).toString('hex');
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        const user = new User({ username, email, password: hashedPassword, sessionToken, otp, isVerified: false });
+        const user = new User({ username, email, password: hashedPassword, sessionToken, otp: null, isVerified: true });
         await user.save();
 
-        // Send OTP email (best-effort)
-        try {
-            await sendOtpEmail(email, otp);
-            req.flash('success', 'Registration successful! OTP sent to your email. Please verify.');
-        } catch (mailErr) {
-            console.error('Mail send error:', mailErr);
-            req.flash('warning', 'Registration successful but failed to send OTP email. Contact admin.');
-        }
-
-        return res.redirect(`/verify-otp?email=${encodeURIComponent(email)}`);
+        req.flash('success', 'Registration successful! You can now login.');
+        return res.redirect('/login');
     } catch (err) {
         console.error(err);
         req.flash('error', 'Server error');
@@ -91,33 +81,14 @@ exports.postLogin = async (req, res) => {
 
 // Render OTP verification page
 exports.getVerifyOtp = (req, res) => {
-    const email = req.query.email;
-    res.render('auth/verifyOtp', { email });
+    req.flash('success', 'OTP verification is not required. Please login.');
+    return res.redirect('/login');
 };
 
 // Handle OTP verification
 exports.postVerifyOtp = async (req, res) => {
-    const { email, otp } = req.body;
-    try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            req.flash('error', 'User not found');
-            return res.render('auth/verifyOtp', { email, messages: req.flash() });
-        }
-        if (user.otp !== otp) {
-            req.flash('error', 'Invalid OTP');
-            return res.render('auth/verifyOtp', { email, messages: req.flash() });
-        }
-        user.isVerified = true;
-        user.otp = null;
-        await user.save();
-        req.flash('success', 'OTP verified! You can now login.');
-        return res.redirect('/login');
-    } catch (err) {
-        console.error(err);
-        req.flash('error', 'OTP verification failed');
-        return res.render('auth/verifyOtp', { email, messages: req.flash() });
-    }
+    req.flash('success', 'OTP verification is not required. Please login.');
+    return res.redirect('/login');
 };
 
 // Handle logout
