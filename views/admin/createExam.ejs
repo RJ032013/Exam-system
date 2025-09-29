@@ -1,0 +1,229 @@
+<%- include('../partials/header', { title: 'Create Exam' }) %>
+
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="bi bi-plus-circle"></i> Create New Exam
+        </h2>
+    </div>
+</div>
+
+<form id="examForm" action="/admin/create-exam" method="POST" enctype="multipart/form-data">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Exam Details</h5>
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subject Name</label>
+                        <input type="text" class="form-control" id="subject" name="subject" placeholder="e.g. Mathematics" >
+                    </div>
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Exam Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="duration" class="form-label">Duration (minutes)</label>
+                        <input type="number" class="form-control" id="duration" name="duration" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category">
+                            <option value="">-- Select Category (optional) --</option>
+                            <% if (typeof categories !== 'undefined') { %>
+                                <% categories.forEach(cat => { %>
+                                    <option value="<%= cat._id %>"><%= cat.name %></option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">Questions</h5>
+                            <button type="button" class="btn btn-success" onclick="addQuestion()">
+                                <i class="bi bi-plus"></i> Add Question
+                            </button>
+                        </div>
+                    <div id="questionsContainer">
+                        <!-- Questions will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="sticky-aside">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Instructions</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-info-circle text-info"></i> Fill in exam details first</li>
+                        <li><i class="bi bi-info-circle text-info"></i> Add at least one question</li>
+                        <li><i class="bi bi-info-circle text-info"></i> MCQ: provide options and correct answer</li>
+                        <li><i class="bi bi-info-circle text-info"></i> Open-ended: no options required</li>
+                        <li><i class="bi bi-info-circle text-info"></i> Image: upload an image and optional prompt</li>
+                        <li><i class="bi bi-info-circle text-info"></i> Set points for each question</li>
+                    </ul>
+                    <div class="d-grid mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Create Exam
+                        </button>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+let questionCount = 0;
+
+function addQuestion() {
+    questionCount++;
+    const questionHtml = `
+        <div class="card mb-3" id="question-${questionCount}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Question ${questionCount}</h6>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeQuestion(${questionCount})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Question Text</label>
+                    <input type="text" class="form-control" name="questions[${questionCount-1}][text]" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Question Type</label>
+                    <select class="form-select" name="questions[${questionCount-1}][type]" onchange="toggleOptions(this)" data-qid="${questionCount-1}">
+                        <option value="mcq">Multiple Choice (MCQ)</option>
+                        <option value="open">Open-ended (no options)</option>
+                        <option value="image">Image Question</option>
+                    </select>
+                </div>
+                <div class="mb-3 question-options" id="options-${questionCount-1}">
+                    <label class="form-label">Options</label>
+                    <div class="row">
+                        ${[0,1,2,3].map(i => `
+                            <div class="col-md-6 mb-2">
+                                <div class="input-group">
+                                    <span class="input-group-text">${String.fromCharCode(65+i)}</span>
+                                    <input type="text" class="form-control" 
+                                           name="questions[${questionCount-1}][options][${i}]">
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="mb-3 question-image" id="image-${questionCount-1}" style="display:none;">
+                    <label class="form-label">Upload Image</label>
+                    <input type="file" accept="image/*" class="form-control" name="questionImages" data-filename="question-image-${questionCount-1}" onchange="setImageFieldName(this)">
+                    <div class="form-text">Max size depends on server limits.</div>
+                </div>
+                <div class="mb-3 question-answers" id="answers-${questionCount-1}" style="display:none;">
+                    <label class="form-label">Accepted Answers (comma-separated)</label>
+                    <input type="text" class="form-control" name="questions[${questionCount-1}][acceptedAnswers]" placeholder="e.g. photosynthesis, photo synthesis">
+                    <div class="form-text">Used to auto-grade open/image questions. Case-insensitive; accents ignored.</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Correct Answer</label>
+                        <select class="form-select" name="questions[${questionCount-1}][correctAnswer]" id="correct-${questionCount-1}">
+                            <option value="">Select correct option (if MCQ)</option>
+                            <option value="0">A</option>
+                            <option value="1">B</option>
+                            <option value="2">C</option>
+                            <option value="3">D</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Points</label>
+                        <input type="number" class="form-control" 
+                               name="questions[${questionCount-1}][points]" 
+                               value="1" min="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.getElementById('questionsContainer').insertAdjacentHTML('beforeend', questionHtml);
+    // After inserting, ensure the options visibility/required state is correct for this question
+    const sel = document.querySelector(`select[name="questions[${questionCount-1}][type]"]`);
+    if (sel) toggleOptions(sel);
+}
+
+function removeQuestion(id) {
+    if (confirm('Are you sure you want to remove this question?')) {
+        document.getElementById(`question-${id}`).remove();
+    }
+}
+
+// Add first question by default
+addQuestion();
+
+// Toggle options visibility based on question type select
+function toggleOptions(selectEl) {
+    const qid = selectEl.dataset.qid;
+    const val = selectEl.value;
+    const optionsDiv = document.getElementById(`options-${qid}`);
+    const correctSel = document.getElementById(`correct-${qid}`);
+    const imageDiv = document.getElementById(`image-${qid}`);
+    if (val === 'open') {
+        if (optionsDiv) optionsDiv.style.display = 'none';
+        if (correctSel) { correctSel.disabled = true; correctSel.required = false; }
+        // remove required from option inputs
+        if (optionsDiv) {
+            optionsDiv.querySelectorAll('input').forEach(i => { i.required = false; i.value = ''; });
+        }
+        if (imageDiv) imageDiv.style.display = 'none';
+        const ansDiv = document.getElementById(`answers-${qid}`);
+        if (ansDiv) ansDiv.style.display = '';
+    } else {
+        if (val === 'mcq') {
+            if (optionsDiv) optionsDiv.style.display = '';
+            if (correctSel) { correctSel.disabled = false; correctSel.required = true; }
+            // make option inputs required
+            if (optionsDiv) {
+                optionsDiv.querySelectorAll('input').forEach(i => { i.required = true; });
+            }
+            if (imageDiv) imageDiv.style.display = 'none';
+            const ansDiv = document.getElementById(`answers-${qid}`);
+            if (ansDiv) ansDiv.style.display = 'none';
+        } else if (val === 'image') {
+            if (optionsDiv) optionsDiv.style.display = 'none';
+            if (correctSel) { correctSel.disabled = true; correctSel.required = false; correctSel.value = ''; }
+            if (optionsDiv) {
+                optionsDiv.querySelectorAll('input').forEach(i => { i.required = false; i.value = ''; });
+            }
+            if (imageDiv) imageDiv.style.display = '';
+            const ansDiv = document.getElementById(`answers-${qid}`);
+            if (ansDiv) ansDiv.style.display = '';
+        }
+    }
+}
+
+// Ensure the server can map uploaded file to question index by setting originalname proxy
+function setImageFieldName(inputEl) {
+    // Multer cannot read custom attributes for mapping, we'll set a hidden text input carrying the desired originalname
+    const desired = inputEl.getAttribute('data-filename');
+    // Create a sibling hidden field to carry the mapping index
+    let hidden = inputEl.parentElement.querySelector('input[type="hidden"][name="questionImageNames[]"]');
+    if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'questionImageNames[]';
+        inputEl.parentElement.appendChild(hidden);
+    }
+    hidden.value = desired;
+}
+</script>
+
+<%- include('../partials/footer') %>

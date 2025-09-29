@@ -1,0 +1,154 @@
+<%- include('../partials/header', { title: 'Exam Reports' }) %>
+
+<div class="row g-3 align-items-stretch mb-3">
+    <div class="col-12">
+        <h2 class="mb-2"><i class="bi bi-bar-chart"></i> Exam Reports</h2>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-people fs-4 text-primary"></i>
+                    <span class="text-muted">Total Submissions</span>
+                </div>
+                <div class="fs-3 fw-bold"><%= submissions.length %></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-clipboard-check fs-4 text-success"></i>
+                    <span class="text-muted">Average Score</span>
+                </div>
+                <div class="fs-3 fw-bold">
+                    <% if (submissions.length === 0) { %>0<% } else { %>
+                        <%
+                            const avg = (submissions.reduce((a, s) => a + (s.score || 0), 0) / submissions.length).toFixed(2);
+                        %>
+                        <%= avg %>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-journal-text fs-4 text-info"></i>
+                    <span class="text-muted">Exams</span>
+                </div>
+                <div class="fs-3 fw-bold"><%= exams.length %></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-calendar-event fs-4 text-warning"></i>
+                    <span class="text-muted">Latest</span>
+                </div>
+                <div class="fs-6">
+                    <% if (submissions.length === 0) { %>
+                        —
+                    <% } else { %>
+                        <%= new Date(submissions[0].submittedAt).toLocaleString() %>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input id="reportSearch" type="text" class="form-control" placeholder="Search by exam or student">
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Filter by Exam</label>
+                <select id="examFilter" class="form-select">
+                    <option value="">All Exams</option>
+                    <% exams.forEach(e => { %>
+                        <option value="<%= e._id %>"><%= e.title %> <%= e.subject ? '(' + e.subject + ')' : '' %></option>
+                    <% }) %>
+                </select>
+            </div>
+            <div class="col-12 col-md-4 text-md-end">
+                <label class="form-label d-none d-md-block">&nbsp;</label>
+                <a href="/admin/manage-exams" class="btn btn-outline-secondary w-100 w-md-auto"><i class="bi bi-gear"></i> Manage Exams</a>
+            </div>
+        </div>
+    </div>
+  </div>
+
+<div class="card">
+    <div class="card-body">
+        <% if (submissions.length === 0) { %>
+            <div class="alert alert-info"><i class="bi bi-info-circle"></i> No submissions yet.</div>
+        <% } else { %>
+        <div class="table-responsive">
+            <table class="table align-middle" id="reportsTable">
+                <thead>
+                    <tr>
+                        <th>Exam</th>
+                        <th>Subject</th>
+                        <th>Student</th>
+                        <th>Score</th>
+                        <th>Submitted</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% submissions.forEach(s => { %>
+                        <tr data-exam-id="<%= s.exam ? s.exam._id : '' %>">
+                            <td><%= s.exam ? s.exam.title : '-' %></td>
+                            <td><%= s.exam && s.exam.subject ? s.exam.subject : '-' %></td>
+                            <td><%= s.student ? (s.student.username || s.student.email) : '-' %></td>
+                            <td>
+                                <span class="badge <%= (s.score / (s.totalQuestions || 1)) >= 0.6 ? 'bg-success' : 'bg-warning text-dark' %>">
+                                    <%= s.score %>/<%= s.totalQuestions %>
+                                </span>
+                            </td>
+                            <td><%= new Date(s.submittedAt).toLocaleString() %></td>
+                            <td class="text-end">
+                                <a href="/admin/exam-reports/<%= s._id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> View</a>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+        <% } %>
+    </div>
+</div>
+
+<script>
+    (function(){
+        const searchInput = document.getElementById('reportSearch');
+        const examFilter = document.getElementById('examFilter');
+        function applyFilters(){
+            const q = (searchInput.value || '').toLowerCase();
+            const examId = examFilter.value;
+            document.querySelectorAll('#reportsTable tbody tr').forEach(tr => {
+                const text = tr.innerText.toLowerCase();
+                const matchesText = text.includes(q);
+                const matchesExam = !examId || tr.getAttribute('data-exam-id') === examId;
+                tr.style.display = (matchesText && matchesExam) ? '' : 'none';
+            });
+        }
+        if (searchInput) searchInput.addEventListener('input', applyFilters);
+        if (examFilter) examFilter.addEventListener('change', applyFilters);
+    })();
+</script>
+<%- include('../partials/footer') %>
+
+

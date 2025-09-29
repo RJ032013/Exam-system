@@ -1,0 +1,93 @@
+<%- include('../partials/header', { title: 'Manage Categories', messages: typeof messages !== 'undefined' ? messages : {}, user: typeof user !== 'undefined' ? user : null }) %>
+<div class="container py-3">
+  <div class="row align-items-center mb-3">
+    <div class="col-12 col-md-8">
+      <h2 class="mb-2 mb-md-0"><i class="bi bi-tags"></i> Manage Categories</h2>
+    </div>
+    <div class="col-12 col-md-4 text-md-end">
+      <span class="badge bg-primary p-2">Total: <%= categories.length %></span>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-5">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title mb-3"><i class="bi bi-plus-circle"></i> Add New Category</h5>
+          <form action="/admin/manage-categories" method="POST" class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Name</label>
+              <input name="name" class="form-control" placeholder="e.g. Mathematics" required />
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description <span class="text-muted">(optional)</span></label>
+              <textarea name="description" class="form-control" rows="2" placeholder="Short description"></textarea>
+            </div>
+            <div class="col-12 d-grid d-sm-flex gap-2">
+              <button class="btn btn-primary"><i class="bi bi-save"></i> Add Category</button>
+              <button class="btn btn-outline-secondary" type="reset"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-7">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+            <h5 class="card-title mb-0"><i class="bi bi-list-ul"></i> Category List</h5>
+            <div class="input-group" style="max-width: 280px;">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" id="catSearch" class="form-control" placeholder="Search categories">
+            </div>
+          </div>
+          <% if (categories.length === 0) { %>
+            <div class="alert alert-info"><i class="bi bi-info-circle"></i> No categories yet. Add your first one on the left.</div>
+          <% } else { %>
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">Name</th>
+                  <th>Description</th>
+                  <th class="text-end" style="width: 22%;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="catTableBody">
+                <% categories.forEach(cat => { %>
+                  <tr>
+                    <td><span class="fw-semibold"><%= cat.name %></span></td>
+                    <td class="text-muted"><%= cat.description || '-' %></td>
+                    <td class="text-end">
+                      <div class="btn-group">
+                        <a href="/admin/edit-category/<%= cat._id %>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                        <a href="/admin/delete-category/<%= cat._id %>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete category?')"><i class="bi bi-trash"></i></a>
+                      </div>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const input = document.getElementById('catSearch');
+    if (!input) return;
+    input.addEventListener('input', function(){
+      const q = this.value.toLowerCase();
+      document.querySelectorAll('#catTableBody tr').forEach(tr => {
+        const text = tr.innerText.toLowerCase();
+        tr.style.display = text.includes(q) ? '' : 'none';
+      });
+    });
+  })();
+</script>
+<%- include('../partials/footer') %>

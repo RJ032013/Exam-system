@@ -1,0 +1,128 @@
+<%- include('../partials/header', { title: 'Submission Detail' }) %>
+
+<div class="row g-3 align-items-stretch mb-3">
+    <div class="col-12">
+        <h2 class="mb-1"><i class="bi bi-clipboard-check"></i> Submission Detail</h2>
+        <p class="text-muted mb-0">Overview of a student's attempt with per-question results.</p>
+    </div>
+
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-journal-text fs-4 text-primary"></i>
+                    <span class="text-muted">Exam</span>
+                </div>
+                <div class="fw-bold"><%= submission.exam ? submission.exam.title : '-' %></div>
+                <div class="text-muted"><%= submission.exam && submission.exam.subject ? submission.exam.subject : '' %></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-person fs-4 text-info"></i>
+                    <span class="text-muted">Student</span>
+                </div>
+                <div class="fw-bold"><%= submission.student ? (submission.student.username || submission.student.email) : '-' %></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-123 fs-4 text-success"></i>
+                    <span class="text-muted">Score</span>
+                </div>
+                <div class="fs-3 fw-bold"><%= submission.score %>/<%= submission.totalQuestions %></div>
+                <span class="badge <%= submission.status === 'submitted' ? 'bg-success' : 'bg-secondary' %>"><%= submission.status %></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-clock-history fs-4 text-warning"></i>
+                    <span class="text-muted">Submitted</span>
+                </div>
+                <div class="fw-bold"><%= new Date(submission.submittedAt).toLocaleString() %></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title mb-0">Answers</h5>
+        <a href="/admin/exam-reports" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+    </div>
+
+    <% submission.answers.forEach((ans, idx) => { %>
+      <div class="border rounded p-3 mb-3">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-2 gap-2">
+            <div class="me-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary">Q<%= idx + 1 %></span>
+                    <strong><%= ans.question ? ans.question.question : '' %></strong>
+                    <% if (ans.question && ans.question.points) { %>
+                        <span class="badge bg-light text-dark"><%= ans.question.points %> pts</span>
+                    <% } %>
+                </div>
+                <% if (ans.question && ans.question.type === 'image' && ans.question.imagePath) { %>
+                    <div class="mt-2"><img src="<%= ans.question.imagePath %>" class="img-fluid rounded border"></div>
+                <% } %>
+            </div>
+            <span class="badge <%= ans.isCorrect ? 'bg-success' : 'bg-danger' %>"><%= ans.isCorrect ? 'Correct' : 'Wrong' %></span>
+        </div>
+
+        <% if (ans.selectedOption !== null && ans.selectedOption !== undefined && ans.question && Array.isArray(ans.question.options) && ans.question.options.length) { %>
+            <div class="row g-2">
+                <div class="col-12 col-md-6">
+                    <div class="p-2 bg-light rounded">
+                        <strong>Selected:</strong>
+                        <span><%= ans.question.options[ans.selectedOption] !== undefined ? ans.question.options[ans.selectedOption] : '-' %></span>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="p-2 bg-light rounded">
+                        <strong>Correct:</strong>
+                        <span><%= (ans.question.correctAnswer !== null && ans.question.correctAnswer !== undefined && ans.question.options[ans.question.correctAnswer] !== undefined) ? ans.question.options[ans.question.correctAnswer] : 'Not provided' %></span>
+                    </div>
+                </div>
+            </div>
+        <% } else { %>
+            <div class="row g-2">
+                <div class="col-12 col-md-6">
+                    <div class="p-2 bg-light rounded"><strong>Answer:</strong> <%= ans.textAnswer || '-' %></div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="p-2 bg-light rounded">
+                        <strong>Correct:</strong>
+                        <span>
+                            <% if (ans.question && Array.isArray(ans.question.acceptedAnswers) && ans.question.acceptedAnswers.length) { %>
+                                <%= ans.question.acceptedAnswers.join(', ') %>
+                            <% } else { %>
+                                Not provided
+                            <% } %>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+</div>
+
+<div class="mt-3 d-flex gap-2 flex-wrap">
+  <a href="/admin/exam-reports" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Reports</a>
+  <a href="/admin/manage-exams" class="btn btn-outline-primary"><i class="bi bi-gear"></i> Manage Exams</a>
+</div>
+
+<%- include('../partials/footer') %>
+
+

@@ -1,0 +1,104 @@
+<%- include('../partials/header', { title: 'Taking Exam: ' + exam.title }) %>
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><%= exam.title %></h2>
+            <div class="timer alert alert-warning mb-0">
+                <i class="bi bi-clock"></i> Time Remaining: <span id="timer"><%= exam.duration %>:00</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="examForm" action="/exams/submit/<%= exam._id %>" method="POST">
+    <div class="row">
+        <div class="col-12">
+            <% exam.questions.forEach((question, index) => { %>
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            Question <%= index + 1 %> 
+                            <span class="badge bg-secondary"><%= question.points %> pts</span>
+                        </h5>
+                        <p class="card-text"><%= question.question %></p>
+                        <% if (question.type === 'image' && question.imagePath) { %>
+                            <div class="mb-3">
+                                <img src="<%= question.imagePath %>" alt="Question image" class="img-fluid rounded border">
+                            </div>
+                        <% } %>
+                        <% if (question.options && question.options.length > 0) { %>
+                            <div class="list-group">
+                                <% question.options.forEach((option, optIndex) => { %>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="answers[<%= index %>]" 
+                                               id="q<%= index %>_<%= optIndex %>" 
+                                               value="<%= optIndex %>"
+                                               required>
+                                        <label class="form-check-label" for="q<%= index %>_<%= optIndex %>">
+                                            <%= option %>
+                                        </label>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <div class="mb-3">
+                                <textarea class="form-control" name="answers[<%= index %>]" rows="3" placeholder="Type your answer here..."></textarea>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary" onclick="confirmSubmit()">
+                    <i class="bi bi-check-circle"></i> Submit Exam
+                </button>
+                <span class="text-muted">
+                    Total Questions: <%= exam.questions.length %> | 
+                    Total Points: <%= exam.questions.reduce((sum, q) => sum + q.points, 0) %>
+                </span>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+let timeLeft = <%= exam.duration %> * 60; // Convert to seconds
+const timerElement = document.getElementById('timer');
+
+function updateTimer() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById('examForm').submit();
+    }
+    timeLeft--;
+}
+
+const timerInterval = setInterval(updateTimer, 1000);
+
+function confirmSubmit() {
+    if (confirm('Are you sure you want to submit your exam? You cannot change your answers after submission.')) {
+        document.getElementById('examForm').submit();
+    }
+}
+
+// Auto-submit when time runs out
+window.addEventListener('beforeunload', function(e) {
+    if (timeLeft > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+</script>
+
+<%- include('../partials/footer') %>

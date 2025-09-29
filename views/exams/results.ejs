@@ -1,0 +1,109 @@
+<%- include('../partials/header', { title: 'Exam Results' }) %>
+
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="bi bi-award"></i> Exam Results
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title"><%= submission.exam.title %></h4>
+                <p class="card-text"><%= submission.exam.description %></p>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="alert alert-success">
+                            <h5>Your Score</h5>
+                            <h2><%= submission.score %> / <%= submission.totalQuestions %></h2>
+                            <p>Percentage: <%= Math.round((submission.score / submission.totalQuestions) * 100) %>%</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <h5>Exam Details</h5>
+                            <p><strong>Submitted:</strong> <%= new Date(submission.submittedAt).toLocaleString() %></p>
+                            <p><strong>Total Questions:</strong> <%= submission.totalQuestions %></p>
+                            <p><strong>Correct Answers:</strong> <%= submission.answers.filter(a => a.isCorrect).length %></p>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4">Question Review</h5>
+                <% submission.answers.forEach((answer, index) => { %>
+                    <div class="card mb-3 <%= answer.isCorrect ? 'border-success' : 'border-danger' %>">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                Question <%= index + 1 %>
+                                <% if (answer.isCorrect) { %>
+                                    <span class="badge bg-success">Correct</span>
+                                <% } else { %>
+                                    <span class="badge bg-danger">Incorrect</span>
+                                <% } %>
+                            </h6>
+                            <p class="card-text mb-2"><%= answer.question.question %></p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Your Answer:</strong>
+                                    <div class="ms-3 <%= answer.isCorrect ? 'text-success' : 'text-danger' %>">
+                                        <%= answer.question.options[answer.selectedOption] %>
+                                    </div>
+                                </div>
+                                <% if (!answer.isCorrect) { %>
+                                    <div class="col-md-6">
+                                        <strong>Correct Answer:</strong>
+                                        <div class="ms-3 text-success">
+                                            <%= answer.question.options[answer.question.correctAnswer] %>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Performance Summary</h5>
+                <div class="progress mb-3" style="height: 30px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: <%= (submission.score / submission.totalQuestions) * 100 %>%"
+                         aria-valuenow="<%= submission.score %>" 
+                         aria-valuemin="0" 
+                         aria-valuemax="<%= submission.totalQuestions %>">
+                        <%= Math.round((submission.score / submission.totalQuestions) * 100) %>%
+                    </div>
+                </div>
+                <ul class="list-group">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Correct Answers
+                        <span class="badge bg-success rounded-pill">
+                            <%= submission.answers.filter(a => a.isCorrect).length %>
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Incorrect Answers
+                        <span class="badge bg-danger rounded-pill">
+                            <%= submission.answers.filter(a => !a.isCorrect).length %>
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Points Earned
+                        <span class="badge bg-primary rounded-pill">
+                            <%= submission.score %>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

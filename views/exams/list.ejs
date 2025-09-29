@@ -1,0 +1,53 @@
+<%- include('../partials/header', { title: 'Available Exams' }) %>
+
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="bi bi-list-check"></i> Available Exams
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <% if (exams.length === 0) { %>
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No exams available at the moment.
+            </div>
+        </div>
+    <% } else { %>
+        <% exams.forEach(exam => { %>
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-file-earmark-text"></i> <%= exam.title %>
+                        </h5>
+                        <% if (exam.subject) { %>
+                            <p class="text-muted mb-2"><i class="bi bi-journal-text"></i> Subject: <%= exam.subject %></p>
+                        <% } %>
+                        <p class="card-text"><%= exam.description %></p>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-clock"></i> Duration: <%= exam.duration %> minutes</li>
+                            <li><i class="bi bi-question-circle"></i> Questions: <%= exam.questions.length %></li>
+                            <li><i class="bi bi-person"></i> Created by: <%= exam.createdBy.username %></li>
+                        </ul>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <% if (user && user.role === 'admin') { %>
+                            <a href="/admin/manage-exams" class="btn btn-outline-secondary w-100" title="Admins manage exams, not take them">
+                                <i class="bi bi-shield-lock"></i> Admin: Manage Exams
+                            </a>
+                        <% } else { %>
+                            <a href="/exams/take/<%= exam._id %>" class="btn btn-primary w-100">
+                                <i class="bi bi-play-circle"></i> Start Exam
+                            </a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        <% }); %>
+    <% } %>
+</div>
+
+<%- include('../partials/footer') %>
