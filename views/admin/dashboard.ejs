@@ -205,10 +205,9 @@
   (function(){
     const input = document.getElementById('dashExamSearch');
     const filterButtons = document.querySelectorAll('[data-status]');
-    if (!input) return;
     let currentStatus = '';
     function apply() {
-      const q = input.value.toLowerCase();
+      const q = (input && input.value ? input.value : '').toLowerCase();
       document.querySelectorAll('#dashExamBody tr').forEach(tr => {
         const text = tr.innerText.toLowerCase();
         const status = tr.getAttribute('data-status') || '';
@@ -217,7 +216,7 @@
         tr.style.display = (byText && byStatus) ? '' : 'none';
       });
     }
-    input.addEventListener('input', apply);
+    if (input) input.addEventListener('input', apply);
     filterButtons.forEach(btn => {
       btn.addEventListener('click', function(){
         filterButtons.forEach(b => b.classList.remove('active'));
@@ -226,5 +225,13 @@
         apply();
       });
     });
+    // Live updates for dashboard
+    try {
+      const socket = io();
+      socket.on('connect', function(){ socket.emit('join-admin'); });
+      socket.on('exams:update', function(){ location.reload(); });
+      socket.on('categories:update', function(){ location.reload(); });
+      socket.on('reports:update', function(){ location.reload(); });
+    } catch(e) {}
   })();
 </script>

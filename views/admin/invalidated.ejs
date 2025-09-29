@@ -1,0 +1,138 @@
+<%- include('../partials/header', { title: 'Invalidated Submissions' }) %>
+
+<div class="row g-3 align-items-stretch mb-3">
+  <div class="col-12">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+      <h2 class="mb-0"><i class="bi bi-shield-exclamation"></i> Invalidated Submissions</h2>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="/admin/exam-reports" class="btn btn-outline-secondary"><i class="bi bi-bar-chart"></i> Reports</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-people text-danger fs-4"></i>
+          <span class="text-muted">Total Invalidated</span>
+        </div>
+        <div class="fs-3 fw-bold"><%= submissions ? submissions.length : 0 %></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-clock-history text-warning fs-4"></i>
+          <span class="text-muted">Most Recent</span>
+        </div>
+        <div class="fw-bold">
+          <% if (submissions && submissions.length) { %>
+            <%= new Date(submissions[0].submittedAt || Date.now()).toLocaleString() %>
+          <% } else { %>—<% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-md-6">
+        <label class="form-label">Search</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input id="invSearch" type="text" class="form-control" placeholder="Search by student or exam">
+        </div>
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label">Filter by Subject</label>
+        <select id="invSubject" class="form-select">
+          <option value="">All</option>
+          <% const subjectsSet = new Set(); (submissions||[]).forEach(s => { if (s.exam && s.exam.subject) subjectsSet.add(s.exam.subject); });
+             Array.from(subjectsSet).forEach(sub => { %>
+            <option value="<%= sub %>"><%= sub %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+  </div>
+  </div>
+
+<div class="card">
+  <div class="card-body">
+    <% if (!submissions || submissions.length === 0) { %>
+      <div class="alert alert-info"><i class="bi bi-info-circle"></i> No invalidated submissions.</div>
+    <% } else { %>
+    <div class="table-responsive">
+      <table class="table align-middle stacked-table" id="invTable">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Exam</th>
+            <th>Subject</th>
+            <th>Status</th>
+            <th>Invalidated At</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% submissions.forEach(s => { %>
+            <tr data-subject="<%= s.exam && s.exam.subject ? s.exam.subject : '' %>">
+              <td data-label="Student"><%= s.student ? (s.student.username || s.student.email) : '-' %></td>
+              <td data-label="Exam"><%= s.exam ? s.exam.title : '-' %></td>
+              <td data-label="Subject"><%= s.exam && s.exam.subject ? s.exam.subject : '-' %></td>
+              <td data-label="Status"><span class="badge bg-danger">invalidated</span></td>
+              <td data-label="Invalidated At"><%= s.submittedAt ? new Date(s.submittedAt).toLocaleString() : '-' %></td>
+              <td class="text-end" data-label="Actions">
+                <div class="d-flex gap-2 flex-wrap justify-content-end">
+                  <a href="/admin/exam-reports/<%= s._id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> View</a>
+                  <form action="/admin/exam-reports/reset/<%= s._id %>" method="POST" onsubmit="return confirm('Reset this submission to allow retake?')">
+                    <button class="btn btn-sm btn-warning" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const qEl = document.getElementById('invSearch');
+    const subjEl = document.getElementById('invSubject');
+    function apply(){
+      const q = (qEl.value || '').toLowerCase();
+      const subj = subjEl.value || '';
+      document.querySelectorAll('#invTable tbody tr').forEach(tr => {
+        const text = tr.innerText.toLowerCase();
+        const okText = text.includes(q);
+        const okSubj = !subj || (tr.getAttribute('data-subject') === subj);
+        tr.style.display = (okText && okSubj) ? '' : 'none';
+      });
+    }
+    if (qEl) qEl.addEventListener('input', apply);
+    if (subjEl) subjEl.addEventListener('change', apply);
+
+    // Live updates: reload list when reports change
+    try {
+      const socket = io();
+      socket.on('connect', function(){ socket.emit('join-admin'); });
+      socket.on('reports:update', function(payload){
+        if (!payload || (payload.type !== 'invalidated' && payload.type !== 'reset')) return;
+        location.reload();
+      });
+    } catch (e) {}
+  })();
+</script>
+
+<%- include('../partials/footer') %>
+
+

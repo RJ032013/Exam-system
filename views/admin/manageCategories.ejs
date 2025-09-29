@@ -88,6 +88,12 @@
         tr.style.display = text.includes(q) ? '' : 'none';
       });
     });
+    // Live updates for categories
+    try {
+      const socket = io();
+      socket.on('connect', function(){ socket.emit('join-admin'); });
+      socket.on('categories:update', function(){ location.reload(); });
+    } catch(e) {}
   })();
 </script>
 <%- include('../partials/footer') %>

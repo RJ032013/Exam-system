@@ -7,6 +7,10 @@ const mongoose = require('mongoose');
 const path = require('path');
 
 const app = express();
+const http = require('http');
+const server = http.createServer(app);
+const { Server } = require('socket.io');
+const io = new Server(server);
 const fs = require('fs');
 const pathFs = require('path');
 
@@ -54,6 +58,7 @@ app.use((req, res, next) => {
         error: req.flash('error'),
         success: req.flash('success')
     };
+    res.locals.SOCKET_IO = true;
     next();
 });
 
@@ -77,5 +82,19 @@ app.use((req, res) => {
     res.status(404).render('404');
 });
 
+// Socket.io basic rooms for submissions (real-time)
+io.on('connection', (socket) => {
+    socket.on('join-submission', (submissionId) => {
+        if (submissionId) socket.join(`submission:${submissionId}`);
+    });
+    socket.on('join-admin', () => socket.join('admins'));
+    socket.on('join-user', (userId) => {
+        if (userId) socket.join(`user:${userId}`);
+    });
+});
+
+// Helper emitter
+app.set('io', io);
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

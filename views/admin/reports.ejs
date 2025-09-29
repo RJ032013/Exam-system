@@ -84,7 +84,10 @@
             </div>
             <div class="col-12 col-md-4 text-md-end">
                 <label class="form-label d-none d-md-block">&nbsp;</label>
-                <a href="/admin/manage-exams" class="btn btn-outline-secondary w-100 w-md-auto"><i class="bi bi-gear"></i> Manage Exams</a>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="/admin/manage-exams" class="btn btn-outline-secondary"><i class="bi bi-gear"></i> Manage Exams</a>
+                    <a href="/admin/invalidated" class="btn btn-outline-danger"><i class="bi bi-shield-exclamation"></i> Invalidated</a>
+                </div>
             </div>
         </div>
     </div>
@@ -120,7 +123,14 @@
                             </td>
                             <td><%= new Date(s.submittedAt).toLocaleString() %></td>
                             <td class="text-end">
-                                <a href="/admin/exam-reports/<%= s._id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> View</a>
+                                <div class="btn-group">
+                                    <a href="/admin/exam-reports/<%= s._id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> View</a>
+                                    <% if (s.status === 'invalidated') { %>
+                                        <form action="/admin/exam-reports/reset/<%= s._id %>" method="POST" onsubmit="return confirm('Reset this submission to allow retake?')">
+                                            <button class="btn btn-sm btn-outline-warning" type="submit"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+                                        </form>
+                                    <% } %>
+                                </div>
                             </td>
                         </tr>
                     <% }) %>
@@ -147,6 +157,16 @@
         }
         if (searchInput) searchInput.addEventListener('input', applyFilters);
         if (examFilter) examFilter.addEventListener('change', applyFilters);
+
+        // Live updates
+        try {
+          const socket = io();
+          socket.emit('join-admin');
+          socket.on('reports:update', function(){
+            // naive refresh to reflect updates
+            location.reload();
+          });
+        } catch (e) { /* ignore if socket not loaded */ }
     })();
 </script>
 <%- include('../partials/footer') %>

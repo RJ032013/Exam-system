@@ -50,4 +50,16 @@
     <% } %>
 </div>
 
+<script>
+// If admin resets a student's submission, auto-redirect the student to start the exam
+try {
+  if (window.__appSocket) {
+    window.__appSocket.on('submission:reset', function(payload){
+      if (!payload || !payload.examId) return;
+      window.location.href = '/exams/take/' + payload.examId;
+    });
+  }
+} catch (e) {}
+</script>
+
 <%- include('../partials/footer') %>

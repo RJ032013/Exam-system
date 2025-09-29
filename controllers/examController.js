@@ -48,7 +48,7 @@ exports.getExam = async (req, res) => {
             await submission.save();
         }
 
-        res.render('exams/take', { exam });
+        res.render('exams/take', { exam, submissionId: submission._id });
     } catch (err) {
         console.error(err);
         req.flash('error', 'Error loading exam');
@@ -74,6 +74,37 @@ exports.submitExam = async (req, res) => {
                 .trim();
         }
 
+        // Levenshtein-based similarity (0..1)
+        function similarity(a, b) {
+            const s1 = normalizeAnswer(a);
+            const s2 = normalizeAnswer(b);
+            if (!s1 && !s2) return 1;
+            if (!s1 || !s2) return 0;
+            const len1 = s1.length;
+            const len2 = s2.length;
+            const dp = Array.from({ length: len1 + 1 }, () => new Array(len2 + 1).fill(0));
+            for (let i = 0; i <= len1; i++) dp[i][0] = i;
+            for (let j = 0; j <= len2; j++) dp[0][j] = j;
+            for (let i = 1; i <= len1; i++) {
+                const c1 = s1.charCodeAt(i - 1);
+                for (let j = 1; j <= len2; j++) {
+                    const c2 = s2.charCodeAt(j - 1);
+                    if (c1 === c2) {
+                        dp[i][j] = dp[i - 1][j - 1];
+                    } else {
+                        dp[i][j] = Math.min(
+                            dp[i - 1][j] + 1,     // deletion
+                            dp[i][j - 1] + 1,     // insertion
+                            dp[i - 1][j - 1] + 1  // substitution
+                        );
+                    }
+                }
+            }
+            const dist = dp[len1][len2];
+            const maxLen = Math.max(len1, len2) || 1;
+            return 1 - dist / maxLen;
+        }
+
         for (let i = 0; i < exam.questions.length; i++) {
             const question = exam.questions[i];
             let selectedOption = null;
@@ -91,14 +122,19 @@ exports.submitExam = async (req, res) => {
                     if (isCorrect) score += question.points;
                 }
             } else {
-                // Open-ended or image question: accept text answer, auto-grade if acceptedAnswers present
+                // Open-ended or image question: accept text answer, auto-grade with fuzzy match (>= 75%)
                 textAnswer = ansItem || '';
-                const normalized = normalizeAnswer(textAnswer);
                 if (Array.isArray(question.acceptedAnswers) && question.acceptedAnswers.length > 0) {
-                    const accepted = question.acceptedAnswers.map(a => normalizeAnswer(a));
-                    if (accepted.includes(normalized)) {
+                    let best = 0;
+                    for (const acc of question.acceptedAnswers) {
+                        best = Math.max(best, similarity(textAnswer, acc));
+                        if (best >= 0.75) break;
+                    }
+                    if (best >= 0.75) {
                         isCorrect = true;
                         score += question.points;
+                    } else {
+                        isCorrect = false;
                     }
                 } else {
                     isCorrect = false;
@@ -136,12 +172,57 @@ exports.submitExam = async (req, res) => {
 
         await submission.save();
 
+        // Emit real-time events
+        try {
+            const io = req.app.get('io');
+            if (io) {
+                io.to(`submission:${submission._id}`).emit('submission:update', { status: 'submitted', score });
+                io.to('admins').emit('reports:update', { type: 'submitted', submissionId: String(submission._id) });
+            }
+        } catch (e) { /* noop */ }
+
+        // If AJAX request, return JSON to avoid page refresh
+        const wantsJson = (req.get('x-requested-with') === 'XMLHttpRequest') || (req.get('accept') && req.get('accept').includes('application/json'));
+        if (wantsJson) {
+            return res.json({ ok: true, resultUrl: '/exams/results/' + submission._id });
+        }
         req.flash('success', `Exam submitted! Your score: ${score}/${exam.questions.length}`);
-        res.redirect('/exams/results/' + submission._id);
+        return res.redirect('/exams/results/' + submission._id);
     } catch (err) {
         console.error(err);
+        const wantsJson = (req.get('x-requested-with') === 'XMLHttpRequest') || (req.get('accept') && req.get('accept').includes('application/json'));
+        if (wantsJson) {
+            return res.status(500).json({ ok: false, error: 'submit_failed' });
+        }
         req.flash('error', 'Error submitting exam');
-        res.redirect('/exams');
+        return res.redirect('/exams');
+    }
+};
+
+// Invalidate an in-progress submission (anti-cheat)
+exports.invalidateExam = async (req, res) => {
+    try {
+        const submission = await Submission.findById(req.params.submissionId);
+        if (!submission) return res.status(404).json({ ok: false });
+        // Ensure only owner can invalidate own exam (from their session)
+        if (String(submission.student) !== String(req.session.user._id)) {
+            return res.status(403).json({ ok: false });
+        }
+        if (submission.status === 'in-progress') {
+            submission.status = 'invalidated';
+            await submission.save();
+        }
+        try {
+            const io = req.app.get('io');
+            if (io) {
+                io.to(`submission:${submission._id}`).emit('submission:update', { status: 'invalidated' });
+                io.to('admins').emit('reports:update', { type: 'invalidated', submissionId: String(submission._id) });
+            }
+        } catch (e) { /* noop */ }
+        return res.json({ ok: true });
+    } catch (err) {
+        console.error('invalidateExam error', err);
+        return res.status(500).json({ ok: false });
     }
 };
 

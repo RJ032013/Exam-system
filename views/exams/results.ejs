@@ -50,17 +50,25 @@
                                 <div class="col-md-6">
                                     <strong>Your Answer:</strong>
                                     <div class="ms-3 <%= answer.isCorrect ? 'text-success' : 'text-danger' %>">
-                                        <%= answer.question.options[answer.selectedOption] %>
+                                        <% if (answer.selectedOption !== null && answer.selectedOption !== undefined && answer.question && Array.isArray(answer.question.options) && answer.question.options.length) { %>
+                                            <%= answer.question.options[answer.selectedOption] !== undefined ? answer.question.options[answer.selectedOption] : '-' %>
+                                        <% } else { %>
+                                            <%= answer.textAnswer || '-' %>
+                                        <% } %>
                                     </div>
                                 </div>
-                                <% if (!answer.isCorrect) { %>
-                                    <div class="col-md-6">
-                                        <strong>Correct Answer:</strong>
-                                        <div class="ms-3 text-success">
-                                            <%= answer.question.options[answer.question.correctAnswer] %>
-                                        </div>
+                                <div class="col-md-6">
+                                    <strong>Correct Answer:</strong>
+                                    <div class="ms-3 text-success">
+                                        <% if (answer.question && Array.isArray(answer.question.options) && answer.question.options.length) { %>
+                                            <%= (answer.question.correctAnswer !== null && answer.question.correctAnswer !== undefined && answer.question.options[answer.question.correctAnswer] !== undefined) ? answer.question.options[answer.question.correctAnswer] : 'Not provided' %>
+                                        <% } else if (answer.question && Array.isArray(answer.question.acceptedAnswers) && answer.question.acceptedAnswers.length) { %>
+                                            <%= answer.question.acceptedAnswers.join(', ') %>
+                                        <% } else { %>
+                                            Not provided
+                                        <% } %>
                                     </div>
-                                <% } %>
+                                </div>
                             </div>
                         </div>
                     </div>

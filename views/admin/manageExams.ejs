@@ -50,6 +50,9 @@
                                             <i class="bi bi-<%= exam.isActive ? 'pause' : 'play' %>"></i>
                                             <%= exam.isActive ? 'Deactivate' : 'Activate' %>
                                         </a>
+                                        <a href="/admin/edit-exam/<%= exam._id %>" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
                                         <a href="/admin/exam-reports" class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-bar-chart"></i> Reports
                                         </a>
@@ -63,3 +66,13 @@
 </div>
 
 <%- include('../partials/footer') %>
+
+<script>
+  (function(){
+    try {
+      const socket = io();
+      socket.on('connect', function(){ socket.emit('join-admin'); });
+      socket.on('exams:update', function(){ location.reload(); });
+    } catch(e) {}
+  })();
+</script>

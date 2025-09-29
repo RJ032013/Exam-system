@@ -34,6 +34,12 @@ router.get('/manage-exams', adminController.getManageExams);
 router.get('/toggle-exam/:id', adminController.toggleExamStatus);
 router.get('/exam-reports', adminController.getExamReports);
 router.get('/exam-reports/:id', adminController.getExamReportDetail);
+router.post('/exam-reports/reset/:id', adminController.resetSubmission);
+router.get('/invalidated', adminController.getInvalidatedSubmissions);
+// alias for convenience
+router.get('/exam-invalidated', adminController.getInvalidatedSubmissions);
+router.get('/edit-exam/:id', adminController.getEditExam);
+router.post('/edit-exam/:id', upload.array('questionImages'), adminController.postEditExam);
 // Category routes
 router.get('/manage-categories', adminController.getManageCategories);
 router.post('/manage-categories', adminController.postCreateCategory);
