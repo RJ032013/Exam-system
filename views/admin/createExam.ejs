@@ -46,7 +46,7 @@
 
             <div class="card">
                 <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white py-2 border-bottom" style="z-index: 1020;">
                             <h5 class="card-title mb-0">Questions</h5>
                             <button type="button" class="btn btn-success" onclick="addQuestion()">
                                 <i class="bi bi-plus"></i> Add Question
@@ -227,3 +227,8 @@ function setImageFieldName(inputEl) {
 </script>
 
 <%- include('../partials/footer') %>
+
+<!-- Floating Add Question Button -->
+<button type="button" class="btn btn-success fab-add-question" onclick="addQuestion()" title="Add Question">
+    <i class="bi bi-plus-lg"></i>
+</button>

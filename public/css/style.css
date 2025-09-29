@@ -78,6 +78,17 @@
     font-size: 24px;
 }
 
+/* Floating action button for Add Question */
+.fab-add-question {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 1030; /* above sticky header and content */
+    border-radius: 999px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
 /* Keep instructions card visible while scrolling the form */
 .sticky-aside {
     position: sticky;
