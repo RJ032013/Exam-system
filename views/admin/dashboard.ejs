@@ -1,23 +1,34 @@
 <%- include('../partials/header', { title: 'Admin Dashboard' }) %>
 
 <div class="container-fluid py-4">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
-        <div>
-            <h2 class="mb-1"><i class="bi bi-speedometer2"></i> Admin Dashboard</h2>
-            <p class="text-muted mb-0">Overview of exams, submissions and categories.</p>
+    <div class="row g-3 align-items-center mb-2">
+        <div class="col-12 col-md-7">
+            <h2 class="mb-1 d-flex align-items-center gap-2"><i class="bi bi-speedometer2"></i> Admin Dashboard</h2>
+            <p class="text-muted mb-0">Overview of exams, submissions, categories and quick actions.</p>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <a href="/admin/create-exam" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Create Exam</a>
-            <a href="/admin/exam-reports" class="btn btn-outline-primary"><i class="bi bi-bar-chart"></i> Reports</a>
+        <div class="col-12 col-md-5">
+            <div class="d-flex flex-wrap justify-content-md-end gap-2">
+                <a href="/admin/create-exam" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Create Exam</a>
+                <a href="/admin/manage-exams" class="btn btn-outline-secondary"><i class="bi bi-gear"></i> Manage</a>
+                <a href="/admin/exam-reports" class="btn btn-outline-primary"><i class="bi bi-bar-chart"></i> Reports</a>
+            </div>
         </div>
     </div>
 
     <!-- Welcome banner -->
     <div class="card mb-3 border-0 shadow-sm" style="background: linear-gradient(135deg, #0d6efd 0%, #5ab1ff 100%);">
-        <div class="card-body text-white d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-            <div>
-                <h4 class="mb-1">Welcome back, Admin</h4>
-                <p class="mb-0 opacity-75">Use the quick actions to create and manage exams efficiently.</p>
+        <div class="card-body text-white">
+            <div class="row align-items-center g-3">
+                <div class="col-12 col-lg-8">
+                    <h4 class="mb-1">Welcome back, Admin</h4>
+                    <p class="mb-0 opacity-75">Create, manage and monitor exams with the tools below.</p>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="d-grid d-md-flex justify-content-md-end gap-2">
+                        <a href="/admin/create-exam" class="btn btn-light text-primary"><i class="bi bi-plus-circle"></i> New Exam</a>
+                        <a href="/admin/manage-categories" class="btn btn-outline-light"><i class="bi bi-tags"></i> Categories</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -100,7 +111,7 @@
     </div>
 
     <div class="row mt-4">
-        <div class="col-12 col-lg-8">
+        <div class="col-12 col-xxl-8">
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
@@ -172,30 +183,7 @@
             </div>
         </div>
 
-        <div class="col-12 col-lg-4">
-            <div class="card shadow-sm mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Quick Actions</h5>
-                    <div class="d-grid gap-2">
-                        <a href="/admin/create-exam" class="btn btn-primary"> <i class="bi bi-plus-circle"></i> Create New Exam</a>
-                        <a href="/admin/manage-exams" class="btn btn-secondary"> <i class="bi bi-gear"></i> Manage Exams</a>
-                        <a href="/admin/manage-categories" class="btn btn-info"> <i class="bi bi-tags"></i> Manage Categories</a>
-                        <a href="/exams" class="btn btn-outline-primary"> <i class="bi bi-eye"></i> View Student Portal</a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-title">Stats</h6>
-                    <ul class="list-unstyled mb-0">
-                        <li> Total Exams: <strong><%= exams %></strong></li>
-                        <li> Total Submissions: <strong><%= submissions %></strong></li>
-                        <li> Categories: <strong><%= categories %></strong></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+        
     </div>
  </div>
  </div>

@@ -24,22 +24,26 @@
                             <span class="badge bg-secondary"><%= question.points %> pts</span>
                         </h5>
                         <p class="card-text"><%= question.question %></p>
-                        <% if (question.type === 'image' && question.imagePath) { %>
+                        <% if (question.imagePath) { %>
                             <div class="mb-3">
                                 <img src="<%= question.imagePath %>" alt="Question image" class="img-fluid rounded border">
                             </div>
                         <% } %>
                         <% if (question.options && question.options.length > 0) { %>
                             <div class="list-group">
-                                <% question.options.forEach((option, optIndex) => { %>
+                                <% 
+                                  const oo = (typeof optionOrder !== 'undefined' && Array.isArray(optionOrder)) ? optionOrder : [];
+                                  const order = oo[index] && Array.isArray(oo[index]) ? oo[index] : question.options.map((_, i) => i);
+                                  order.forEach((optIdx, displayIdx) => { 
+                                %>
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" 
                                                name="answers[<%= index %>]" 
-                                               id="q<%= index %>_<%= optIndex %>" 
-                                               value="<%= optIndex %>"
+                                               id="q<%= index %>_<%= displayIdx %>" 
+                                               value="<%= displayIdx %>"
                                                required>
-                                        <label class="form-check-label" for="q<%= index %>_<%= optIndex %>">
-                                            <%= option %>
+                                        <label class="form-check-label" for="q<%= index %>_<%= displayIdx %>">
+                                            <%= question.options[optIdx] %>
                                         </label>
                                     </div>
                                 <% }); %>

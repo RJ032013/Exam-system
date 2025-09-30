@@ -52,6 +52,15 @@
                                 <i class="bi bi-plus"></i> Add Question
                             </button>
                         </div>
+                        <div class="d-flex gap-2 mb-3">
+                            <a class="btn btn-outline-secondary" href="/admin/download-mcq-template">
+                                <i class="bi bi-download"></i> Download MCQ Template
+                            </a>
+                            <label class="btn btn-outline-primary mb-0">
+                                <i class="bi bi-upload"></i> Import MCQ Excel/CSV
+                                <input type="file" id="mcqExcel" accept=".xlsx,.xls,.csv" hidden>
+                            </label>
+                        </div>
                     <div id="questionsContainer">
                         <!-- Questions will be added here dynamically -->
                     </div>
@@ -125,8 +134,12 @@ function addQuestion() {
                 </div>
                 <div class="mb-3 question-image" id="image-${questionCount-1}" style="display:none;">
                     <label class="form-label">Upload Image</label>
-                    <input type="file" accept="image/*" class="form-control" name="questionImages" data-filename="question-image-${questionCount-1}" onchange="setImageFieldName(this)">
-                    <div class="form-text">Max size depends on server limits.</div>
+                    <input type="file" accept="image/*" class="form-control" data-qid="${questionCount-1}" onchange="encodeImageToBase64(this)">
+                    <input type="hidden" name="questions[${questionCount-1}][imageBase64]" id="img64-${questionCount-1}">
+                    <div class="mt-2">
+                        <img id="preview-${questionCount-1}" src="" alt="Preview" style="max-width: 100%; display: none;" class="img-fluid rounded border">
+                    </div>
+                    <div class="form-text">Image will be embedded as base64 (no file stored).</div>
                 </div>
                 <div class="mb-3 question-answers" id="answers-${questionCount-1}" style="display:none;">
                     <label class="form-label">Accepted Answers (comma-separated)</label>
@@ -223,6 +236,77 @@ function setImageFieldName(inputEl) {
         inputEl.parentElement.appendChild(hidden);
     }
     hidden.value = desired;
+}
+
+// Import MCQ from Excel/CSV
+function encodeImageToBase64(inputEl) {
+    const file = inputEl.files && inputEl.files[0];
+    const qid = inputEl.getAttribute('data-qid');
+    if (!file || !qid) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+        const dataUrl = e.target.result;
+        const hidden = document.getElementById(`img64-${qid}`);
+        const prev = document.getElementById(`preview-${qid}`);
+        if (hidden) hidden.value = dataUrl;
+        if (prev) { prev.src = dataUrl; prev.style.display = ''; }
+    };
+    reader.readAsDataURL(file);
+}
+
+// Import MCQ from Excel/CSV
+document.getElementById('mcqExcel').addEventListener('change', function(){
+    const file = this.files && this.files[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append('mcqExcel', file);
+    fetch('/admin/import-mcq-excel', { method: 'POST', body: form })
+        .then(r => r.json())
+        .then(data => {
+            if (!data || !data.ok) {
+                alert('Failed to import questions');
+                return;
+            }
+            const qs = Array.isArray(data.questions) ? data.questions : [];
+            if (qs.length === 0) { this.value = ''; return; }
+            // Use first empty slot if available, otherwise append
+            const firstText = document.querySelector('input[name="questions[0][text]"]');
+            const firstBlank = firstText && !firstText.value.trim();
+            if (firstBlank) {
+                setQuestionFields(0, qs[0]);
+                for (let i = 1; i < qs.length; i++) insertImportedQuestion(qs[i]);
+            } else {
+                qs.forEach(q => insertImportedQuestion(q));
+            }
+            this.value = '';
+        })
+        .catch(() => { alert('Upload failed'); this.value=''; });
+});
+
+function insertImportedQuestion(q) {
+    addQuestion();
+    const idx = questionCount - 1;
+    setQuestionFields(idx, q);
+}
+
+function setQuestionFields(idx, q) {
+    // q: { type:'mcq', text, options[], correctAnswer, points }
+    const textInput = document.querySelector(`input[name="questions[${idx}][text]"]`);
+    const typeSelect = document.querySelector(`select[name="questions[${idx}][type]"]`);
+    const pointsInput = document.querySelector(`input[name="questions[${idx}][points]"]`);
+    if (textInput) textInput.value = q.text || '';
+    if (typeSelect) { typeSelect.value = 'mcq'; toggleOptions(typeSelect); }
+    if (Array.isArray(q.options)) {
+        q.options.slice(0,4).forEach((opt, i) => {
+            const optInput = document.querySelector(`input[name=\"questions[${idx}][options][${i}]\"]`);
+            if (optInput) optInput.value = String(opt);
+        });
+    }
+    const correctSel = document.getElementById(`correct-${idx}`);
+    if (correctSel && q.correctAnswer !== null && q.correctAnswer !== undefined) {
+        correctSel.value = String(q.correctAnswer);
+    }
+    if (pointsInput) pointsInput.value = q.points || 1;
 }
 </script>
 

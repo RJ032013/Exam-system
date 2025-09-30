@@ -1,0 +1,65 @@
+<%- include('../partials/header', { title: 'Manage Faculty' }) %>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Register Faculty</h5>
+        <form action="/admin/manage-faculty" method="POST">
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" name="username" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" name="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" name="password" placeholder="Default if blank: Password@123">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Department</label>
+            <input type="text" class="form-control" name="department" placeholder="e.g. Computer Science">
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-person-plus"></i> Create Faculty</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card mb-4 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Faculty List</h5>
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Joined</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% faculty.forEach(f => { %>
+                <tr>
+                  <td><%= f.username %></td>
+                  <td><%= f.email %></td>
+                  <td><%= f.department || '-' %></td>
+                  <td><%= new Date(f.createdAt).toLocaleDateString() %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
+
+

@@ -4,12 +4,13 @@ const crypto = require('crypto');
 
 // Render register page
 exports.getRegister = (req, res) => {
-    res.render('auth/register');
+    const user = req.session.user || null;
+    res.render('auth/register', { user });
 };
 
 // Handle registration (with optional confirmPassword)
 exports.postRegister = async (req, res) => {
-    const { username, email, password, confirmPassword } = req.body;
+    const { username, email, password, confirmPassword, role } = req.body;
 
     if (typeof confirmPassword !== 'undefined' && password !== confirmPassword) {
         req.flash('error', 'Passwords do not match');
@@ -26,7 +27,12 @@ exports.postRegister = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 12);
         const sessionToken = crypto.randomBytes(32).toString('hex');
 
-        const user = new User({ username, email, password: hashedPassword, sessionToken, otp: null, isVerified: true });
+        // Only allow role elevation if current session is admin; otherwise force student
+        let assignedRole = 'student';
+        if (req.session.user && req.session.user.role === 'admin' && (role === 'admin' || role === 'faculty' || role === 'student')) {
+            assignedRole = role;
+        }
+        const user = new User({ username, email, password: hashedPassword, role: assignedRole, sessionToken, otp: null, isVerified: true });
         await user.save();
 
         req.flash('success', 'Registration successful! You can now login.');
@@ -71,7 +77,10 @@ exports.postLogin = async (req, res) => {
         req.session.user = user;
         req.session.sessionToken = sessionToken;
         req.flash('success', 'Login successful');
-        return res.redirect('/');
+        if (user.role === 'admin' || user.role === 'faculty') {
+            return res.redirect('/admin/dashboard');
+        }
+        return res.redirect('/exams');
     } catch (err) {
         console.error(err);
         req.flash('error', 'Login failed');

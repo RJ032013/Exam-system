@@ -40,6 +40,11 @@
                         <li class="nav-item">
                             <a class="nav-link" href="/exams">Exams</a>
                         </li>
+                        <% if (user.role === 'student') { %>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/exams/my-results">My Results</a>
+                        </li>
+                        <% } %>
                         <% if (user.role === 'admin') { %>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
@@ -47,8 +52,15 @@
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="/admin/dashboard">Dashboard</a></li>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="/admin/create-exam">Create Exam</a></li>
                                     <li><a class="dropdown-item" href="/admin/manage-exams">Manage Exams</a></li>
+                                    <li><a class="dropdown-item" href="/admin/manage-categories">Manage Categories</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="/admin/exam-reports">Reports</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="/admin/manage-faculty">Manage Faculty</a></li>
+                                    <li><a class="dropdown-item" href="/admin/students-by-faculty">Students by Faculty</a></li>
                                 </ul>
                             </li>
                         <% } %>

@@ -44,6 +44,78 @@
                 </div>
             </div>
 
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Edit Existing Questions</h5>
+                    <% if (exam.questions && exam.questions.length) { %>
+                        <% exam.questions.forEach(function(q, idx){ %>
+                            <div class="border rounded p-3 mb-3">
+                                <input type="hidden" name="existingQuestions[<%= idx %>][id]" value="<%= q._id %>">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">Question <%= idx + 1 %></h6>
+                                    <span class="badge bg-light text-dark text-capitalize"><%= q.type %></span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Question Text</label>
+                                    <input type="text" class="form-control" name="existingQuestions[<%= idx %>][text]" value="<%- q.question %>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Question Type</label>
+                                    <select class="form-select" name="existingQuestions[<%= idx %>][type]" onchange="toggleExistingOptions(this)" data-qid="ex-<%= idx %>">
+                                        <option value="mcq" <%= q.type==='mcq'?'selected':'' %>>Multiple Choice (MCQ)</option>
+                                        <option value="open" <%= q.type==='open'?'selected':'' %>>Open-ended</option>
+                                        <option value="image" <%= q.type==='image'?'selected':'' %>>Image Question</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3 question-options" id="options-ex-<%= idx %>" style="display:<%= q.type==='mcq'?'':'none' %>">
+                                    <label class="form-label">Options</label>
+                                    <div class="row">
+                                        <% [0,1,2,3].forEach(function(i){ %>
+                                            <div class="col-md-6 mb-2">
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><%= String.fromCharCode(65+i) %></span>
+                                                    <input type="text" class="form-control" name="existingQuestions[<%= idx %>][options][<%= i %>]" value="<%- (q.options && q.options[i]) ? q.options[i] : '' %>">
+                                                </div>
+                                            </div>
+                                        <% }) %>
+                                    </div>
+                                </div>
+                                <div class="mb-3 question-image" id="image-ex-<%= idx %>" style="display:<%= q.type==='image'?'':'none' %>">
+                                    <label class="form-label">Upload Image</label>
+                                    <input type="file" accept="image/*" class="form-control" data-qid="ex-<%= idx %>" onchange="encodeExistingImage(this)">
+                                    <input type="hidden" name="existingQuestions[<%= idx %>][imageBase64]" id="img64-ex-<%= idx %>">
+                                    <div class="mt-2">
+                                        <img id="preview-ex-<%= idx %>" src="<%= q.imagePath || '' %>" alt="Preview" style="max-width: 100%; <%= q.imagePath ? '' : 'display:none;' %>" class="img-fluid rounded border">
+                                    </div>
+                                </div>
+                                <div class="mb-3 question-answers" id="answers-ex-<%= idx %>" style="display:<%= (q.type==='open' || q.type==='image')?'':'none' %>">
+                                    <label class="form-label">Accepted Answers (comma-separated)</label>
+                                    <input type="text" class="form-control" name="existingQuestions[<%= idx %>][acceptedAnswers]" value="<%- (q.acceptedAnswers && q.acceptedAnswers.join(', ')) || '' %>">
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Correct Answer</label>
+                                        <select class="form-select" name="existingQuestions[<%= idx %>][correctAnswer]" id="correct-ex-<%= idx %>">
+                                            <option value="">Select correct option (if MCQ)</option>
+                                            <option value="0" <%= q.correctAnswer === 0 ? 'selected' : '' %>>A</option>
+                                            <option value="1" <%= q.correctAnswer === 1 ? 'selected' : '' %>>B</option>
+                                            <option value="2" <%= q.correctAnswer === 2 ? 'selected' : '' %>>C</option>
+                                            <option value="3" <%= q.correctAnswer === 3 ? 'selected' : '' %>>D</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Points</label>
+                                        <input type="number" class="form-control" name="existingQuestions[<%= idx %>][points]" value="<%= q.points || 1 %>" min="1">
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <div class="alert alert-info mb-0"><i class="bi bi-info-circle"></i> This exam has no questions yet.</div>
+                    <% } %>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white py-2 border-bottom" style="z-index: 1020;">
@@ -190,6 +262,46 @@ function toggleOptions(selectEl) {
             if (ansDiv) ansDiv.style.display = '';
         }
     }
+}
+
+function toggleExistingOptions(selectEl) {
+    const qid = selectEl.dataset.qid; // ex-<idx>
+    const val = selectEl.value;
+    const optionsDiv = document.getElementById(`options-${qid}`);
+    const correctSel = document.getElementById(`correct-${qid}`);
+    const imageDiv = document.getElementById(`image-${qid}`);
+    const ansDiv = document.getElementById(`answers-${qid}`);
+    if (val === 'open') {
+        if (optionsDiv) optionsDiv.style.display = 'none';
+        if (correctSel) { correctSel.disabled = true; correctSel.required = false; }
+        if (imageDiv) imageDiv.style.display = 'none';
+        if (ansDiv) ansDiv.style.display = '';
+    } else if (val === 'mcq') {
+        if (optionsDiv) optionsDiv.style.display = '';
+        if (correctSel) { correctSel.disabled = false; correctSel.required = true; }
+        if (imageDiv) imageDiv.style.display = 'none';
+        if (ansDiv) ansDiv.style.display = 'none';
+    } else if (val === 'image') {
+        if (optionsDiv) optionsDiv.style.display = 'none';
+        if (correctSel) { correctSel.disabled = true; correctSel.required = false; correctSel.value = ''; }
+        if (imageDiv) imageDiv.style.display = '';
+        if (ansDiv) ansDiv.style.display = '';
+    }
+}
+
+function encodeExistingImage(inputEl) {
+    const file = inputEl.files && inputEl.files[0];
+    const qid = inputEl.getAttribute('data-qid'); // ex-<idx>
+    if (!file || !qid) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+        const dataUrl = e.target.result;
+        const hidden = document.getElementById(`img64-${qid}`);
+        const prev = document.getElementById(`preview-${qid}`);
+        if (hidden) hidden.value = dataUrl;
+        if (prev) { prev.src = dataUrl; prev.style.display = ''; }
+    };
+    reader.readAsDataURL(file);
 }
 </script>
 

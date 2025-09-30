@@ -36,19 +36,63 @@ exports.getExam = async (req, res) => {
             return res.status(403).render('sessionEnded');
         }
 
-        // If no submission exists, create an in-progress submission
+        // If no submission exists, create an in-progress submission with randomized question order
         if (!submission) {
+            // Generate a shuffled copy of question ids
+            const shuffledIds = exam.questions.map(q => q._id);
+            for (let i = shuffledIds.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledIds[i], shuffledIds[j]] = [shuffledIds[j], shuffledIds[i]];
+            }
+
+            // Build per-question option permutations (aligned after we set questionOrder)
             submission = new Submission({
                 student: req.session.user._id,
                 exam: exam._id,
                 answers: [],
                 totalQuestions: exam.questions.length,
+                questionOrder: shuffledIds,
+                optionOrder: [],
                 status: 'in-progress'
+            });
+            await submission.save();
+        } else if (!submission.questionOrder || submission.questionOrder.length !== exam.questions.length) {
+            // Backfill or fix question order for existing in-progress submissions
+            const shuffledIds = exam.questions.map(q => q._id);
+            for (let i = shuffledIds.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledIds[i], shuffledIds[j]] = [shuffledIds[j], shuffledIds[i]];
+            }
+            submission.questionOrder = shuffledIds;
+            submission.optionOrder = [];
+            await submission.save();
+        }
+        // Reorder questions for this student based on persisted questionOrder
+        let orderedQuestions = exam.questions;
+        if (submission.questionOrder && submission.questionOrder.length === exam.questions.length) {
+            const idToQuestion = new Map(exam.questions.map(q => [String(q._id), q]));
+            orderedQuestions = submission.questionOrder.map(id => idToQuestion.get(String(id))).filter(Boolean);
+        }
+
+        // Ensure optionOrder array exists and matches orderedQuestions length
+        if (!Array.isArray(submission.optionOrder)) submission.optionOrder = [];
+        if (submission.optionOrder.length !== orderedQuestions.length) {
+            submission.optionOrder = orderedQuestions.map(q => {
+                if (Array.isArray(q.options) && q.options.length > 0) {
+                    const idxs = q.options.map((_, i) => i);
+                    for (let i = idxs.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
+                    }
+                    return idxs;
+                }
+                return [];
             });
             await submission.save();
         }
 
-        res.render('exams/take', { exam, submissionId: submission._id });
+        const optionOrder = Array.isArray(submission.optionOrder) ? submission.optionOrder : [];
+        res.render('exams/take', { exam: { ...exam.toObject(), questions: orderedQuestions }, submissionId: submission._id, optionOrder });
     } catch (err) {
         console.error(err);
         req.flash('error', 'Error loading exam');
@@ -105,8 +149,21 @@ exports.submitExam = async (req, res) => {
             return 1 - dist / maxLen;
         }
 
-        for (let i = 0; i < exam.questions.length; i++) {
-            const question = exam.questions[i];
+        // Use the same persisted ordering when mapping answers to questions
+        const submission = await Submission.findOne({ student: req.session.user._id, exam: exam._id });
+        if (!submission) {
+            req.flash('error', 'Submission not found or session expired');
+            return res.redirect('/exams');
+        }
+
+        let orderedQuestions = exam.questions;
+        if (submission.questionOrder && submission.questionOrder.length === exam.questions.length) {
+            const idToQuestion = new Map(exam.questions.map(q => [String(q._id), q]));
+            orderedQuestions = submission.questionOrder.map(id => idToQuestion.get(String(id))).filter(Boolean);
+        }
+
+        for (let i = 0; i < orderedQuestions.length; i++) {
+            const question = orderedQuestions[i];
             let selectedOption = null;
             let textAnswer = '';
             let isCorrect = false;
@@ -117,8 +174,12 @@ exports.submitExam = async (req, res) => {
             if (question.options && question.options.length > 0) {
                 // MCQ
                 if (ansItem !== undefined && ansItem !== null && ansItem !== '') {
-                    selectedOption = parseInt(ansItem);
-                    isCorrect = (selectedOption === question.correctAnswer);
+                    // Map displayed option index back to original option index using optionOrder
+                    const displayIndex = parseInt(ansItem);
+                    const order = Array.isArray(submission.optionOrder) ? submission.optionOrder[i] : null;
+                    const originalIndex = (order && order[displayIndex] !== undefined) ? order[displayIndex] : displayIndex;
+                    selectedOption = originalIndex;
+                    isCorrect = (originalIndex === question.correctAnswer);
                     if (isCorrect) score += question.points;
                 }
             } else {
@@ -149,11 +210,7 @@ exports.submitExam = async (req, res) => {
             });
         }
 
-        let submission = await Submission.findOne({ student: req.session.user._id, exam: exam._id });
-        if (!submission) {
-            req.flash('error', 'Submission not found or session expired');
-            return res.redirect('/exams');
-        }
+        // submission already loaded above
 
         if (submission.status === 'invalidated') {
             return res.status(403).render('sessionEnded');
@@ -241,6 +298,24 @@ exports.getResults = async (req, res) => {
     } catch (err) {
         console.error(err);
         req.flash('error', 'Error loading results');
+        res.redirect('/exams');
+    }
+};
+
+// List all results for the logged-in student
+exports.getMyResults = async (req, res) => {
+    try {
+        const submissions = await Submission.find({
+            student: req.session.user._id,
+            status: 'submitted'
+        })
+        .populate('exam')
+        .sort({ submittedAt: -1 });
+
+        res.render('exams/myResults', { submissions });
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Error loading your results');
         res.redirect('/exams');
     }
 };

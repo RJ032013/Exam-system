@@ -1,0 +1,97 @@
+<%- include('../partials/header', { title: 'Students by Faculty' }) %>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Assign Students to Faculty</h5>
+        <form action="/admin/assign-student-faculty" method="POST" class="row g-2">
+          <div class="col-md-5">
+            <label class="form-label">Student</label>
+            <select name="studentId" class="form-select" required>
+              <% Object.keys(groups).forEach(fid => { %>
+                <% groups[fid].forEach(s => { %>
+                  <option value="<%= s._id %>"><%= s.username %> (<%= s.email %>)</option>
+                <% }) %>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">Faculty</label>
+            <select name="facultyId" class="form-select">
+              <option value="">Unassigned</option>
+              <% facultyList.forEach(f => { %>
+                <option value="<%= f._id %>"><%= f.username %> - <%= f.department || '' %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-md-2 d-grid align-items-end">
+            <button class="btn btn-primary" type="submit">Assign</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <% facultyList.forEach(f => { %>
+    <div class="col-md-6 mb-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-person-badge"></i> <%= f.username %> <span class="text-muted" style="font-weight: normal; font-size: 0.9rem;">(<%= f.department || 'No department' %>)</span></h5>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr><th>Student</th><th>Email</th><th>Joined</th></tr>
+              </thead>
+              <tbody>
+                <% (groups[String(f._id)] || []).forEach(s => { %>
+                  <tr>
+                    <td><%= s.username %></td>
+                    <td><%= s.email %></td>
+                    <td><%= new Date(s.createdAt).toLocaleDateString() %></td>
+                  </tr>
+                <% }) %>
+                <% if (!(groups[String(f._id)] || []).length) { %>
+                  <tr><td colspan="3" class="text-muted">No students assigned</td></tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% }) %>
+
+  <div class="col-md-6 mb-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-person-x"></i> Unassigned</h5>
+        <div class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr><th>Student</th><th>Email</th><th>Joined</th></tr>
+            </thead>
+            <tbody>
+              <% (groups['unassigned'] || []).forEach(s => { %>
+                <tr>
+                  <td><%= s.username %></td>
+                  <td><%= s.email %></td>
+                  <td><%= new Date(s.createdAt).toLocaleDateString() %></td>
+                </tr>
+              <% }) %>
+              <% if (!(groups['unassigned'] || []).length) { %>
+                <tr><td colspan="3" class="text-muted">No unassigned students</td></tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
+
+

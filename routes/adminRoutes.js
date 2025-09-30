@@ -17,34 +17,54 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+const excelUpload = multer({ storage });
+const User = require('../models/User');
 
-// Protect admin routes
-router.use((req, res, next) => {
-    if (!req.session.user || req.session.user.role !== 'admin') {
+// Access guards
+function requireAdminOrFaculty(req, res, next) {
+    if (!req.session.user || (req.session.user.role !== 'admin' && req.session.user.role !== 'faculty')) {
         req.flash('error', 'Access denied');
         return res.redirect('/');
     }
     next();
-});
+}
+
+function requireAdmin(req, res, next) {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+        req.flash('error', 'Admin access required');
+        return res.redirect('/admin/dashboard');
+    }
+    next();
+}
+
+// Protect admin area base
+router.use(requireAdminOrFaculty);
 
 router.get('/dashboard', adminController.getDashboard);
 router.get('/create-exam', adminController.getCreateExam);
 router.post('/create-exam', upload.array('questionImages'), adminController.postCreateExam);
+router.get('/download-mcq-template', adminController.downloadMcqTemplate);
+router.post('/import-mcq-excel', excelUpload.single('mcqExcel'), adminController.importMcqExcel);
 router.get('/manage-exams', adminController.getManageExams);
-router.get('/toggle-exam/:id', adminController.toggleExamStatus);
+router.get('/toggle-exam/:id', requireAdmin, adminController.toggleExamStatus);
 router.get('/exam-reports', adminController.getExamReports);
 router.get('/exam-reports/:id', adminController.getExamReportDetail);
-router.post('/exam-reports/reset/:id', adminController.resetSubmission);
+router.post('/exam-reports/reset/:id', requireAdmin, adminController.resetSubmission);
+// Faculty and student management
+router.get('/manage-faculty', requireAdmin, adminController.getManageFaculty);
+router.post('/manage-faculty', requireAdmin, adminController.postCreateFaculty);
+router.get('/students-by-faculty', requireAdmin, adminController.getStudentsByFaculty);
+router.post('/assign-student-faculty', requireAdmin, adminController.assignStudentFaculty);
 router.get('/invalidated', adminController.getInvalidatedSubmissions);
 // alias for convenience
 router.get('/exam-invalidated', adminController.getInvalidatedSubmissions);
-router.get('/edit-exam/:id', adminController.getEditExam);
-router.post('/edit-exam/:id', upload.array('questionImages'), adminController.postEditExam);
+router.get('/edit-exam/:id', requireAdmin, adminController.getEditExam);
+router.post('/edit-exam/:id', requireAdmin, upload.array('questionImages'), adminController.postEditExam);
 // Category routes
-router.get('/manage-categories', adminController.getManageCategories);
-router.post('/manage-categories', adminController.postCreateCategory);
-router.get('/edit-category/:id', adminController.getEditCategory);
-router.post('/edit-category/:id', adminController.postEditCategory);
-router.get('/delete-category/:id', adminController.deleteCategory);
+router.get('/manage-categories', requireAdmin, adminController.getManageCategories);
+router.post('/manage-categories', requireAdmin, adminController.postCreateCategory);
+router.get('/edit-category/:id', requireAdmin, adminController.getEditCategory);
+router.post('/edit-category/:id', requireAdmin, adminController.postEditCategory);
+router.get('/delete-category/:id', requireAdmin, adminController.deleteCategory);
 
 module.exports = router;

@@ -38,13 +38,16 @@
               <label for="confirmPassword" class="form-label">Confirm Password</label>
               <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
             </div>
+            <% if (typeof user !== 'undefined' && user && user.role === 'admin') { %>
             <div class="col-12">
               <label for="role" class="form-label">Role</label>
               <select class="form-select" id="role" name="role" required>
                 <option value="student" selected>Student</option>
+                <option value="faculty">Faculty</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
+            <% } %>
             <div class="col-12 d-grid mb-2">
               <button type="submit" class="btn btn-primary">Register</button>
             </div>

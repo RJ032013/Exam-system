@@ -28,6 +28,12 @@ const SubmissionSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    questionOrder: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Question'
+    }],
+    // For MCQs: per-question option index permutation aligned with questionOrder positions
+    optionOrder: [[Number]],
     status: {
         type: String,
         enum: ['in-progress', 'submitted', 'invalidated'],

@@ -4,13 +4,9 @@
   <div class="card shadow" style="box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
     <div class="card-body">
       <h2>Student Dashboard</h2>
-      <% if (exam) { %>
-        <p>Active Exam: <%= exam.course %></p>
-        <a href="/student/exam" class="btn btn-primary">Take Exam</a>
-      <% } else { %>
-        <p>No active exam assigned.</p>
-      <% } %>
-      <a href="/student/result" class="btn btn-success mt-2">View Result</a>
+      <p>Welcome! Use the navigation to view available exams.</p>
+      <a href="/exams" class="btn btn-primary me-2">View Exams</a>
+      <a href="/exams/my-results" class="btn btn-success mt-2">My Results</a>
     </div>
   </div>
 </div>

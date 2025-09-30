@@ -32,6 +32,7 @@ router.get('/', examController.getExams);
 router.get('/take/:id', examController.getExam);
 router.post('/submit/:id', examController.submitExam);
 router.get('/results/:id', examController.getResults);
+router.get('/my-results', examController.getMyResults);
 router.post('/invalidate/:submissionId', examController.invalidateExam);
 
 module.exports = router;

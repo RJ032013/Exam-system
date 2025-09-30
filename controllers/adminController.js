@@ -2,6 +2,7 @@ const Exam = require('../models/Exam');
 const Question = require('../models/Question');
 const Submission = require('../models/Submission');
 const Category = require('../models/Category');
+const User = require('../models/User');
 
 exports.getDashboard = async (req, res) => {
     try {
@@ -15,6 +16,74 @@ exports.getDashboard = async (req, res) => {
         console.error(err);
         req.flash('error', 'Error loading dashboard');
         res.redirect('/');
+    }
+};
+
+// Faculty management
+exports.getManageFaculty = async (req, res) => {
+    try {
+        const faculty = await User.find({ role: 'faculty' }).sort({ createdAt: -1 });
+        res.render('admin/manageFaculty', { faculty });
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Error loading faculty');
+        res.redirect('/admin/dashboard');
+    }
+};
+
+exports.postCreateFaculty = async (req, res) => {
+    try {
+        const { username, email, password, department } = req.body;
+        const bcrypt = require('bcrypt');
+        const crypto = require('crypto');
+        const existing = await User.findOne({ $or: [{ username }, { email }] });
+        if (existing) {
+            req.flash('error', 'Username or email already exists');
+            return res.redirect('/admin/manage-faculty');
+        }
+        const hashedPassword = await bcrypt.hash(password || 'Password@123', 12);
+        const sessionToken = crypto.randomBytes(32).toString('hex');
+        const u = new User({ username, email, password: hashedPassword, role: 'faculty', department: department || '', sessionToken });
+        await u.save();
+        req.flash('success', 'Faculty registered');
+        res.redirect('/admin/manage-faculty');
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Failed to register faculty');
+        res.redirect('/admin/manage-faculty');
+    }
+};
+
+// Students grouped by faculty (using assignedFaculty)
+exports.getStudentsByFaculty = async (req, res) => {
+    try {
+        const facultyList = await User.find({ role: 'faculty' }).sort({ username: 1 });
+        const students = await User.find({ role: 'student' }).select('username email assignedFaculty createdAt').populate('assignedFaculty', 'username email');
+        // Group students by faculty id
+        const groups = {};
+        students.forEach(s => {
+            const key = s.assignedFaculty ? String(s.assignedFaculty._id) : 'unassigned';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(s);
+        });
+        res.render('admin/studentsByFaculty', { facultyList, groups });
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Error loading students');
+        res.redirect('/admin/dashboard');
+    }
+};
+
+exports.assignStudentFaculty = async (req, res) => {
+    try {
+        const { studentId, facultyId } = req.body;
+        await User.findByIdAndUpdate(studentId, { assignedFaculty: facultyId || null });
+        req.flash('success', 'Assignment updated');
+        res.redirect('/admin/students-by-faculty');
+    } catch (err) {
+        console.error(err);
+        req.flash('error', 'Failed to assign');
+        res.redirect('/admin/students-by-faculty');
     }
 };
 
@@ -120,10 +189,14 @@ exports.postCreateExam = async (req, res) => {
 
             let questionData = { question: qText, points: qPoints, type: qType };
 
-            // Attach image if provided and type is image (assign sequentially)
-            if (qType === 'image' && uploadedFiles[fileCursor]) {
-                const file = uploadedFiles[fileCursor++];
-                questionData.imagePath = `/uploads/${file.filename}`;
+            // Image support: prefer base64 from form; fallback to uploaded file if provided
+            if (qType === 'image') {
+                if (q.imageBase64) {
+                    questionData.imagePath = q.imageBase64; // store data URL
+                } else if (uploadedFiles[fileCursor]) {
+                    const file = uploadedFiles[fileCursor++];
+                    questionData.imagePath = `/uploads/${file.filename}`;
+                }
             }
 
             if (q.options) {
@@ -172,6 +245,70 @@ exports.postCreateExam = async (req, res) => {
         console.error(err);
         req.flash('error', 'Error creating exam');
         res.redirect('/admin/create-exam');
+    }
+};
+
+// Downloadable Excel template for MCQ import
+exports.downloadMcqTemplate = (req, res) => {
+    try {
+        const headers = [
+            'Question',
+            'Option A',
+            'Option B',
+            'Option C',
+            'Option D',
+            'Correct Option (A-D)',
+            'Points'
+        ];
+        const csv = headers.join(',') + '\n' +
+            'What is 2+2?,4,3,2,1,A,1\n' +
+            'Capital of France?,Paris,Lyon,Marseille,Toulouse,A,1\n';
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="mcq_template.csv"');
+        return res.send(csv);
+    } catch (e) {
+        return res.status(500).send('Failed to generate template');
+    }
+};
+
+// Import MCQs from uploaded Excel/CSV and return parsed questions for client-side injection
+exports.importMcqExcel = async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ ok: false, error: 'no_file' });
+        const path = require('path');
+        const fs = require('fs');
+        const xlsx = require('xlsx');
+        const filePath = path.join(process.cwd(), req.file.path || `public/uploads/${req.file.filename}`);
+        const wb = xlsx.readFile(filePath);
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = xlsx.utils.sheet_to_json(sheet, { defval: '' });
+        const parsed = [];
+        for (const row of rows) {
+            const text = row['Question'] || row['question'] || row['Q'] || '';
+            const a = row['Option A'] ?? row['A'] ?? '';
+            const b = row['Option B'] ?? row['B'] ?? '';
+            const c = row['Option C'] ?? row['C'] ?? '';
+            const d = row['Option D'] ?? row['D'] ?? '';
+            const correct = row['Correct Option (A-D)'] || row['Correct'] || row['Answer'] || '';
+            const points = parseInt(row['Points'] || row['points'] || 1) || 1;
+            const options = [a, b, c, d].filter(v => v !== undefined && v !== null && String(v).trim() !== '');
+            if (!text || options.length === 0) continue;
+            let correctAnswer = null;
+            const correctStr = String(correct).trim().toUpperCase();
+            const map = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+            if (map.hasOwnProperty(correctStr)) {
+                correctAnswer = map[correctStr];
+            } else if (!Number.isNaN(Number(correctStr))) {
+                const idx = parseInt(correctStr);
+                if (idx >= 0 && idx < options.length) correctAnswer = idx;
+            }
+            parsed.push({ type: 'mcq', text, options, correctAnswer, points });
+        }
+        try { fs.unlinkSync(filePath); } catch (e) {}
+        return res.json({ ok: true, questions: parsed });
+    } catch (e) {
+        console.error('importMcqExcel error', e);
+        return res.status(500).json({ ok: false, error: 'parse_failed' });
     }
 };
 
@@ -313,13 +450,65 @@ exports.postEditExam = async (req, res) => {
             return res.redirect('/admin/manage-exams');
         }
 
-        const { subject, title, description, duration, category, questions } = req.body;
+        const { subject, title, description, duration, category, questions, existingQuestions } = req.body;
         // Update basic fields
         exam.subject = subject || '';
         exam.title = title;
         exam.description = description;
         exam.duration = parseInt(duration);
         exam.category = category || null;
+
+        // Update existing questions inline
+        if (existingQuestions) {
+            let eqList = existingQuestions;
+            if (!Array.isArray(eqList) && typeof eqList === 'object') {
+                // convert indexed object to array by keys order
+                eqList = Object.keys(eqList).map(k => eqList[k]);
+            }
+            // Normalize nested fields
+            for (const item of eqList) {
+                if (!item || !item.id) continue;
+                const qDoc = await Question.findById(item.id);
+                if (!qDoc) continue;
+                qDoc.question = item.text || qDoc.question;
+                qDoc.type = item.type || qDoc.type;
+                if (item.type === 'mcq') {
+                    let opts = item.options;
+                    if (typeof opts === 'object' && !Array.isArray(opts)) {
+                        opts = Object.keys(opts).map(k => opts[k]);
+                    }
+                    if (Array.isArray(opts)) qDoc.options = opts.map(v => v === undefined || v === null ? '' : v);
+                    if (item.correctAnswer !== undefined && item.correctAnswer !== '') {
+                        qDoc.correctAnswer = parseInt(item.correctAnswer);
+                    } else {
+                        qDoc.correctAnswer = null;
+                    }
+                    qDoc.acceptedAnswers = [];
+                    qDoc.imagePath = undefined;
+                } else if (item.type === 'open' || item.type === 'image') {
+                    // accepted answers
+                    if (item.acceptedAnswers) {
+                        let acc = item.acceptedAnswers;
+                        if (typeof acc === 'string') acc = acc.split(',').map(s => s.trim()).filter(Boolean);
+                        if (Array.isArray(acc)) qDoc.acceptedAnswers = acc;
+                    } else {
+                        qDoc.acceptedAnswers = [];
+                    }
+                    // image (base64 supported)
+                    if (item.type === 'image') {
+                        if (item.imageBase64) qDoc.imagePath = item.imageBase64;
+                    } else {
+                        qDoc.imagePath = undefined;
+                    }
+                    qDoc.options = [];
+                    qDoc.correctAnswer = null;
+                }
+                if (item.points !== undefined && item.points !== '') {
+                    qDoc.points = parseInt(item.points) || qDoc.points;
+                }
+                await qDoc.save();
+            }
+        }
 
         // Handle new questions (append only)
         const createdQuestions = [];
@@ -338,9 +527,13 @@ exports.postEditExam = async (req, res) => {
             const qPoints = q.points ? parseInt(q.points) : 1;
             const qType = q.type || 'mcq';
             let questionData = { question: qText, points: qPoints, type: qType };
-            if (qType === 'image' && uploadedFiles[fileCursor]) {
-                const file = uploadedFiles[fileCursor++];
-                questionData.imagePath = `/uploads/${file.filename}`;
+            if (qType === 'image') {
+                if (q.imageBase64) {
+                    questionData.imagePath = q.imageBase64;
+                } else if (uploadedFiles[fileCursor]) {
+                    const file = uploadedFiles[fileCursor++];
+                    questionData.imagePath = `/uploads/${file.filename}`;
+                }
             }
             if (q.options) {
                 let opts = q.options;
