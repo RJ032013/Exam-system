@@ -17,7 +17,7 @@
     <div class="row">
         <div class="col-12">
             <% exam.questions.forEach((question, index) => { %>
-                <div class="card mb-3 shadow-sm">
+                <div class="card mb-3 shadow-sm question-card" data-index="<%= index %>">
                     <div class="card-body">
                         <h5 class="card-title">
                             Question <%= index + 1 %> 
@@ -62,11 +62,16 @@
     <div class="row mt-4">
         <div class="col-12">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                <div class="text-muted order-2 order-md-1">
-                    Total Questions: <%= exam.questions.length %> | 
-                    Total Points: <%= exam.questions.reduce((sum, q) => sum + q.points, 0) %>
+                <div class="order-2 order-md-1 d-flex align-items-center gap-3">
+                    <div class="text-muted">
+                        Total Questions: <%= exam.questions.length %> | 
+                        Total Points: <%= exam.questions.reduce((sum, q) => sum + q.points, 0) %>
+                    </div>
+                    <div class="fw-semibold" id="progressLabel">Question 1 of <%= exam.questions.length %></div>
                 </div>
-                <div class="order-1 order-md-2">
+                <div class="order-1 order-md-2 d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary" id="prevBtn">Prev</button>
+                    <button type="button" class="btn btn-outline-secondary" id="nextBtn">Next</button>
                     <button type="button" class="btn btn-primary" onclick="submitExam()" id="submitBtn">
                         <i class="bi bi-check-circle"></i> Submit Exam
                     </button>
@@ -180,6 +185,51 @@ window.addEventListener('beforeunload', function(e) {
         e.returnValue = '';
     }
 });
+
+// Show only one question at a time
+const cards = Array.from(document.querySelectorAll('.question-card'));
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const submitBtn = document.getElementById('submitBtn');
+const progressLabel = document.getElementById('progressLabel');
+let currentIndex = 0;
+
+function updateVisibility() {
+    cards.forEach((el, idx) => {
+        if (idx === currentIndex) {
+            el.style.display = '';
+            // Ensure current question radios are required
+            el.querySelectorAll('input[type="radio"]').forEach(i => i.required = true);
+        } else {
+            el.style.display = 'none';
+            // Avoid required validation on hidden questions until submit
+            el.querySelectorAll('input[type="radio"]').forEach(i => i.required = false);
+        }
+    });
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === cards.length - 1;
+    submitBtn.style.display = currentIndex === cards.length - 1 ? '' : 'none';
+    if (progressLabel) {
+        progressLabel.textContent = `Question ${currentIndex + 1} of ${cards.length}`;
+    }
+}
+
+prevBtn.addEventListener('click', function(){
+    if (currentIndex > 0) {
+        currentIndex--;
+        updateVisibility();
+    }
+});
+
+nextBtn.addEventListener('click', function(){
+    if (currentIndex < cards.length - 1) {
+        currentIndex++;
+        updateVisibility();
+    }
+});
+
+// Initialize view
+updateVisibility();
 </script>
 
 <%- include('../partials/footer') %>
