@@ -294,7 +294,9 @@ exports.getResults = async (req, res) => {
             return res.redirect('/exams');
         }
 
-        res.render('exams/results', { submission });
+        // Control visibility of correct answers for students based on exam flag
+        const canReveal = submission.exam && submission.exam.revealAnswersToStudents === true;
+        res.render('exams/results', { submission, canReveal });
     } catch (err) {
         console.error(err);
         req.flash('error', 'Error loading results');

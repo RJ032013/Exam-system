@@ -85,6 +85,10 @@
             <div class="col-12 col-md-4 text-md-end">
                 <label class="form-label d-none d-md-block">&nbsp;</label>
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <div class="form-check form-switch me-2" id="revealToggleWrapper" style="display:none;">
+                        <input class="form-check-input" type="checkbox" role="switch" id="globalRevealToggle">
+                        <label class="form-check-label" for="globalRevealToggle">Allow students to see correct answers</label>
+                    </div>
                     <a href="/admin/manage-exams" class="btn btn-outline-secondary"><i class="bi bi-gear"></i> Manage Exams</a>
                     <a href="/admin/invalidated" class="btn btn-outline-danger"><i class="bi bi-shield-exclamation"></i> Invalidated</a>
                 </div>
@@ -143,8 +147,16 @@
 
 <script>
     (function(){
+        // Build examId -> reveal map from server data
+        const examRevealMap = {
+            <% exams.forEach(function(e, idx){ %>
+            '<%= e._id %>': <%= e.revealAnswersToStudents ? 'true' : 'false' %><%= idx < exams.length - 1 ? ',' : '' %>
+            <% }) %>
+        };
         const searchInput = document.getElementById('reportSearch');
         const examFilter = document.getElementById('examFilter');
+        const revealWrapper = document.getElementById('revealToggleWrapper');
+        const revealToggle = document.getElementById('globalRevealToggle');
         function applyFilters(){
             const q = (searchInput.value || '').toLowerCase();
             const examId = examFilter.value;
@@ -154,19 +166,70 @@
                 const matchesExam = !examId || tr.getAttribute('data-exam-id') === examId;
                 tr.style.display = (matchesText && matchesExam) ? '' : 'none';
             });
+            // Toggle visibility of global reveal switch
+            if (examId) {
+                revealWrapper.style.display = '';
+                // Set current checked state from map (default false)
+                const current = !!examRevealMap[examId];
+                revealToggle.checked = current;
+            } else {
+                revealWrapper.style.display = 'none';
+            }
         }
         if (searchInput) searchInput.addEventListener('input', applyFilters);
         if (examFilter) examFilter.addEventListener('change', applyFilters);
 
         // Live updates
         try {
-          const socket = io();
+          const socket = (typeof window !== 'undefined' && window.__appSocket) ? window.__appSocket : io();
           socket.emit('join-admin');
           socket.on('reports:update', function(){
             // naive refresh to reflect updates
             location.reload();
           });
+          socket.on('exams:update', function(payload){
+            if (!payload) return;
+            if (payload.type === 'reveal' && payload.examId) {
+                examRevealMap[payload.examId] = !!payload.reveal;
+                const currentSelected = examFilter && examFilter.value;
+                if (currentSelected && currentSelected === String(payload.examId)) {
+                    // update toggle to reflect new state
+                    revealToggle.checked = !!payload.reveal;
+                }
+            }
+          });
         } catch (e) { /* ignore if socket not loaded */ }
+
+        // Handle reveal toggle POST
+        if (revealToggle) {
+            revealToggle.addEventListener('change', async function(){
+                const examId = examFilter && examFilter.value;
+                if (!examId) return;
+                try {
+                    revealToggle.disabled = true;
+                    const res = await fetch(`/admin/exams/${examId}/toggle-reveal`, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify({ reveal: revealToggle.checked })
+                    });
+                    if (!res.ok) { revealToggle.checked = !revealToggle.checked; return; }
+                    const data = await res.json().catch(() => null);
+                    if (data && data.ok) {
+                        examRevealMap[examId] = !!data.reveal;
+                    } else {
+                        revealToggle.checked = !revealToggle.checked;
+                    }
+                } catch (e) {
+                    revealToggle.checked = !revealToggle.checked;
+                } finally {
+                    revealToggle.disabled = false;
+                }
+            });
+        }
+
+        // Initialize filters on load
+        applyFilters();
     })();
 </script>
 <%- include('../partials/footer') %>

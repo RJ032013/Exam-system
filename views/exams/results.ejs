@@ -57,7 +57,7 @@
                                         <% } %>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-6" data-correct-ans style="display:<%= (typeof canReveal !== 'undefined' && canReveal) ? '' : 'none' %>">
                                     <strong>Correct Answer:</strong>
                                     <div class="ms-3 text-success">
                                         <% if (answer.question && Array.isArray(answer.question.options) && answer.question.options.length) { %>
@@ -113,5 +113,22 @@
         </div>
     </div>
 </div>
+
+<script>
+try {
+  const socket = (typeof window !== 'undefined' && window.__appSocket) ? window.__appSocket : io();
+  // Join exam room so this page updates in real-time when admin toggles reveal
+  const examId = '<%= submission.exam ? submission.exam._id : '' %>';
+  if (examId) socket.emit('join-exam', examId);
+  socket.on('exam:revealAnswers', (payload) => {
+    if (!payload || String(payload.examId) !== String(examId)) return;
+    const shouldReveal = !!payload.reveal;
+    // Toggle visibility of all correct answer blocks
+    document.querySelectorAll('[data-correct-ans]').forEach(el => {
+      el.style.display = shouldReveal ? '' : 'none';
+    });
+  });
+} catch (e) { /* socket optional */ }
+</script>
 
 <%- include('../partials/footer') %>

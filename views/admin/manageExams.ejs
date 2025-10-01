@@ -63,7 +63,16 @@
                             </td>
                             <td><%= exam.createdBy.username %></td>
                             <td>
-                                <div class="d-flex flex-wrap gap-1">
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="reveal-<%= exam._id %>" <%= exam.revealAnswersToStudents ? 'checked' : '' %>
+                                               onchange="toggleRevealExam('<%= exam._id %>', this)">
+                                        <label class="form-check-label" for="reveal-<%= exam._id %>">
+                                            Allow students to see correct answers
+                                        </label>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1">
                                     <a href="/admin/toggle-exam/<%= exam._id %>" 
                                        class="btn btn-sm <%= exam.isActive ? 'btn-warning' : 'btn-success' %>"
                                        data-action="<%= exam.isActive ? 'deactivate' : 'activate' %>"
@@ -77,6 +86,7 @@
                                     <a href="/admin/exam-reports" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-bar-chart"></i> Reports
                                     </a>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -92,7 +102,7 @@
 <script>
   (function(){
     try {
-      const socket = io();
+      const socket = (typeof window !== 'undefined' && window.__appSocket) ? window.__appSocket : io();
       socket.on('connect', function(){ socket.emit('join-admin'); });
       socket.on('exams:update', function(){ location.reload(); });
     } catch(e) {}
@@ -117,4 +127,23 @@
       apply();
     }));
   })();
+
+  async function toggleRevealExam(examId, checkboxEl) {
+    try {
+      checkboxEl.disabled = true;
+      const res = await fetch(`/admin/exams/${examId}/toggle-reveal`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ reveal: checkboxEl.checked })
+      });
+      if (!res.ok) { checkboxEl.checked = !checkboxEl.checked; return; }
+      const data = await res.json().catch(() => null);
+      if (!data || !data.ok) checkboxEl.checked = !checkboxEl.checked;
+    } catch (e) {
+      checkboxEl.checked = !checkboxEl.checked;
+    } finally {
+      checkboxEl.disabled = false;
+    }
+  }
 </script>

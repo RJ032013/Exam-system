@@ -47,6 +47,7 @@ router.get('/download-mcq-template', adminController.downloadMcqTemplate);
 router.post('/import-mcq-excel', excelUpload.single('mcqExcel'), adminController.importMcqExcel);
 router.get('/manage-exams', adminController.getManageExams);
 router.get('/toggle-exam/:id', requireAdmin, adminController.toggleExamStatus);
+router.post('/exams/:id/toggle-reveal', requireAdmin, adminController.toggleRevealAnswers);
 router.get('/exam-reports', adminController.getExamReports);
 router.get('/exam-reports/:id', adminController.getExamReportDetail);
 router.post('/exam-reports/reset/:id', requireAdmin, adminController.resetSubmission);

@@ -30,6 +30,10 @@
                         <label for="duration" class="form-label">Duration (minutes)</label>
                         <input type="number" class="form-control" id="duration" name="duration" min="1" value="<%= exam.duration %>" required>
                     </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="revealAnswersToStudents" name="revealAnswersToStudents" <%= exam.revealAnswersToStudents ? 'checked' : '' %>>
+                        <label class="form-check-label" for="revealAnswersToStudents">Allow students to see correct answers in results</label>
+                    </div>
                     <div class="mb-3">
                         <label for="category" class="form-label">Category</label>
                         <select class="form-select" id="category" name="category">

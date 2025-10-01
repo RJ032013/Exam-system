@@ -1,235 +1,451 @@
 <%- include('../partials/header', { title: 'Taking Exam: ' + exam.title }) %>
+    <style>
+        /* Exam focus mode */
+        body.exam-focus .navbar,
+        body.exam-focus footer {
+            display: none !important;
+        }
 
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><%= exam.title %></h2>
-        </div>
-    </div>
-</div>
+        body.exam-focus {
+            background: #f7f9fc;
+            font-size: 1.06rem;
+            line-height: 1.6;
+        }
 
-<!-- Fixed timer always visible -->
-<div class="timer alert alert-warning mb-0 fixed-timer" role="status" aria-live="polite">
-    <i class="bi bi-clock"></i> Time Remaining: <span id="timer"><%= exam.duration %>:00</span>
-  </div>
+        @media (max-width: 576px) {
+            body.exam-focus {
+                font-size: 1rem;
+            }
+        }
 
-<form id="examForm" action="/exams/submit/<%= exam._id %>" method="POST">
-    <div class="row">
-        <div class="col-12">
-            <% exam.questions.forEach((question, index) => { %>
-                <div class="card mb-3 shadow-sm question-card" data-index="<%= index %>">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            Question <%= index + 1 %> 
-                            <span class="badge bg-secondary"><%= question.points %> pts</span>
-                        </h5>
-                        <p class="card-text"><%= question.question %></p>
-                        <% if (question.imagePath) { %>
-                            <div class="mb-3">
-                                <img src="<%= question.imagePath %>" alt="Question image" class="img-fluid rounded border">
-                            </div>
-                        <% } %>
-                        <% if (question.options && question.options.length > 0) { %>
-                            <div class="list-group">
-                                <% 
-                                  const oo = (typeof optionOrder !== 'undefined' && Array.isArray(optionOrder)) ? optionOrder : [];
-                                  const order = oo[index] && Array.isArray(oo[index]) ? oo[index] : question.options.map((_, i) => i);
-                                  order.forEach((optIdx, displayIdx) => { 
-                                %>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" 
-                                               name="answers[<%= index %>]" 
-                                               id="q<%= index %>_<%= displayIdx %>" 
-                                               value="<%= displayIdx %>"
-                                               required>
-                                        <label class="form-check-label" for="q<%= index %>_<%= displayIdx %>">
-                                            <%= question.options[optIdx] %>
-                                        </label>
-                                    </div>
-                                <% }); %>
-                            </div>
-                        <% } else { %>
-                            <div class="mb-3">
-                                <textarea class="form-control" name="answers[<%= index %>]" rows="3" placeholder="Type your answer here..."></textarea>
-                            </div>
-                        <% } %>
-                    </div>
+        .exam-container {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 0 12px;
+        }
+
+        .exam-topbar {
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .exam-topbar .title {
+            font-weight: 700;
+        }
+
+        .exam-topbar .timer-pill {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .question-card {
+            border: none;
+            border-left: 4px solid #0d6efd;
+            border-radius: 8px;
+        }
+
+        .question-card .card-body {
+            padding: 1.25rem 1.25rem 1rem;
+            background: #fff;
+            border-radius: 8px;
+        }
+
+        .exam-actions {
+            position: sticky;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(6px);
+            padding: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        .option .form-check-input {
+            transform: scale(1.12);
+            margin-top: .35rem;
+        }
+
+        .option {
+            padding: .5rem .6rem;
+            border-radius: .5rem;
+        }
+
+        .option:hover {
+            background: #f2f6ff;
+        }
+
+        .option.active {
+            background: #eaf2ff;
+            outline: 2px solid #cfe2ff;
+        }
+
+        #fsPrompt {
+            border-left: 4px solid #0d6efd;
+        }
+
+        .meta {
+            color: #6c757d;
+            font-size: .95rem;
+        }
+
+        .kbd {
+            padding: .15rem .35rem;
+            border: 1px solid #ced4da;
+            border-bottom-width: 2px;
+            border-radius: .25rem;
+            background: #fff;
+            font-size: .85rem;
+        }
+    </style>
+
+    <div class="exam-topbar">
+        <div class="exam-container py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex flex-column">
+                <div class="title">
+                    <%= exam.title %>
                 </div>
-            <% }); %>
-        </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                <div class="order-2 order-md-1 d-flex align-items-center gap-3">
-                    <div class="text-muted">
-                        Total Questions: <%= exam.questions.length %> | 
-                        Total Points: <%= exam.questions.reduce((sum, q) => sum + q.points, 0) %>
-                    </div>
-                    <div class="fw-semibold" id="progressLabel">Question 1 of <%= exam.questions.length %></div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="meta" id="progressLabelTop">Question 1 of <%= exam.questions.length %>
                 </div>
-                <div class="order-1 order-md-2 d-flex gap-2">
-                    <button type="button" class="btn btn-outline-secondary" id="prevBtn">Prev</button>
-                    <button type="button" class="btn btn-outline-secondary" id="nextBtn">Next</button>
-                    <button type="button" class="btn btn-primary" onclick="submitExam()" id="submitBtn">
-                        <i class="bi bi-check-circle"></i> Submit Exam
-                    </button>
-                </div>
+                <div class="badge bg-warning text-dark timer-pill"><i class="bi bi-clock"></i> <span id="timer"
+                        data-duration="<%= exam.duration %>">
+                        <%= exam.duration %>:00
+                    </span></div>
             </div>
         </div>
     </div>
-</form>
 
-<script>
-// Anti-cheat: Active only during this exam page
-// Invalidate if: tab loses visibility/focus or another exam tab opens
-const submissionId = '<%= submissionId %>';
-let invalidated = false;
-const pageId = Math.random().toString(36).slice(2);
-const channel = ('BroadcastChannel' in window) ? new BroadcastChannel('exam_guard_channel') : null;
+    <div class="w-100" style="height:4px; background:#eef2f7;">
+        <div id="examProgress" style="height:4px; width:0%; background:#0d6efd;"></div>
+    </div>
 
-function invalidateAndLock() {
-    if (invalidated) return;
-    invalidated = true;
-    try {
-        if (navigator.sendBeacon) {
-            const blob = new Blob([JSON.stringify({ ts: Date.now() })], { type: 'application/json' });
-            navigator.sendBeacon('/exams/invalidate/' + submissionId, blob);
-        } else {
-            fetch('/exams/invalidate/' + submissionId, { method: 'POST' });
+    <form id="examForm" action="/exams/submit/<%= exam._id %>" method="POST" class="exam-container py-2">
+        <div id="fsPrompt" class="alert alert-info d-flex justify-content-between align-items-center" role="alert"
+            style="display:none;">
+            <div class="me-2"><i class="bi bi-arrows-fullscreen"></i> For a better and secure experience, please enter
+                fullscreen.</div>
+            <button type="button" class="btn btn-sm btn-primary" id="fsEnterBtn"><i class="bi bi-fullscreen"></i> Enter
+                Fullscreen</button>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <% exam.questions.forEach((question, index)=> { %>
+                    <div class="card mb-4 shadow-sm question-card" data-index="<%= index %>">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                Question <%= index + 1 %>
+                                    <span class="badge bg-secondary">
+                                        <%= question.points %> pts
+                                    </span>
+                            </h5>
+                            <p class="card-text">
+                                <%= question.question %>
+                            </p>
+                            <% if (question.imagePath) { %>
+                                <div class="mb-3">
+                                    <img src="<%= question.imagePath %>" alt="Question image"
+                                        class="img-fluid rounded border">
+                                </div>
+                                <% } %>
+                                    <% if (question.options && question.options.length> 0) { %>
+                                        <div class="list-group">
+                                            <% const oo=(typeof optionOrder !=='undefined' &&
+                                                Array.isArray(optionOrder)) ? optionOrder : []; const order=oo[index] &&
+                                                Array.isArray(oo[index]) ? oo[index] : question.options.map((_, i)=> i);
+                                                order.forEach((optIdx, displayIdx) => {
+                                                %>
+                                                <div class="form-check option">
+                                                    <input class="form-check-input" type="radio"
+                                                        name="answers[<%= index %>]"
+                                                        id="q<%= index %>_<%= displayIdx %>" value="<%= displayIdx %>"
+                                                        required>
+                                                    <label class="form-check-label"
+                                                        for="q<%= index %>_<%= displayIdx %>">
+                                                        <%= question.options[optIdx] %>
+                                                    </label>
+                                                </div>
+                                                <% }); %>
+                                        </div>
+                                        <% } else { %>
+                                            <div class="mb-3">
+                                                <textarea class="form-control" name="answers[<%= index %>]" rows="3"
+                                                    placeholder="Type your answer here..."></textarea>
+                                            </div>
+                                            <% } %>
+                        </div>
+                    </div>
+                    <% }); %>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div
+                    class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                    <div class="order-2 order-md-1 d-flex align-items-center gap-3">
+                        <div class="text-muted">
+                            Total Questions: <%= exam.questions.length %> |
+                                Total Points: <%= exam.questions.reduce((sum, q)=> sum + q.points, 0) %>
+                        </div>
+                        <div class="fw-semibold" id="progressLabel">Question 1 of <%= exam.questions.length %>
+                        </div>
+                    </div>
+                    <div class="order-1 order-md-2 d-flex gap-2">
+                        <button type="button" class="btn btn-lg btn-outline-secondary" id="prevBtn">Prev</button>
+                        <button type="button" class="btn btn-lg btn-outline-secondary" id="nextBtn">Next</button>
+                        <button type="button" class="btn btn-lg btn-primary" onclick="submitExam()" id="submitBtn">
+                            <i class="bi bi-check-circle"></i> Submit Exam
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <script>
+        // Anti-cheat: Active only during this exam page
+        // Invalidate if: tab loses visibility/focus or another exam tab opens
+        const submissionId = '<%= submissionId %>';
+        let invalidated = false;
+        const pageId = Math.random().toString(36).slice(2);
+        const channel = ('BroadcastChannel' in window) ? new BroadcastChannel('exam_guard_channel') : null;
+
+        function invalidateAndLock() {
+            if (invalidated) return;
+            invalidated = true;
+            try {
+                if (navigator.sendBeacon) {
+                    const blob = new Blob([JSON.stringify({ ts: Date.now() })], { type: 'application/json' });
+                    navigator.sendBeacon('/exams/invalidate/' + submissionId, blob);
+                } else {
+                    fetch('/exams/invalidate/' + submissionId, { method: 'POST' });
+                }
+            } catch (_) { }
+            setTimeout(() => {
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;"><h2 style=\"color:#d9534f;font-size:2rem;\">Session Ended: Exam cannot be recovered.</h2></div>';
+                document.body.style.background = '#fff';
+            }, 0);
         }
-    } catch (_) {}
-    setTimeout(() => {
-        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;"><h2 style=\"color:#d9534f;font-size:2rem;\">Session Ended: Exam cannot be recovered.</h2></div>';
-        document.body.style.background = '#fff';
-    }, 0);
-}
-document.addEventListener('visibilitychange', function(){
-    if (document.hidden) invalidateAndLock();
-});
-window.addEventListener('blur', function(){ invalidateAndLock(); });
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) invalidateAndLock();
+        });
+        window.addEventListener('blur', function () { invalidateAndLock(); });
 
-if (channel) {
-    channel.onmessage = function(e){
-        if (e && e.data && e.data.type === 'exam-open' && e.data.pageId !== pageId) {
-            invalidateAndLock();
+        if (channel) {
+            channel.onmessage = function (e) {
+                if (e && e.data && e.data.type === 'exam-open' && e.data.pageId !== pageId) {
+                    invalidateAndLock();
+                }
+            };
+            setTimeout(() => channel.postMessage({ type: 'exam-open', pageId }), 50);
         }
-    };
-    setTimeout(() => channel.postMessage({ type: 'exam-open', pageId }), 50);
-}
-let timeLeft = <%= exam.duration %> * 60; // Convert to seconds
-let isSubmitting = false;
-const timerElement = document.getElementById('timer');
+        let timeLeft = (function () {
+            const el = document.getElementById('timer');
+            const raw = el ? parseInt(el.getAttribute('data-duration'), 10) : 0;
+            const d = Number.isFinite(raw) ? raw : 0;
+            return d * 60; // Convert to seconds
+        })();
+        let isSubmitting = false;
+        const timerElement = document.getElementById('timer');
 
-function updateTimer() {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    
-    if (timeLeft <= 0) {
-        clearInterval(timerInterval);
-        document.getElementById('examForm').submit();
-    }
-    timeLeft--;
-}
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-const timerInterval = setInterval(updateTimer, 1000);
-
-// Realtime: listen for server-side invalidation/submission
-try {
-  const socket = io();
-  socket.emit('join-submission', submissionId);
-  socket.on('submission:update', (payload) => {
-    if (!payload) return;
-    if (payload.status === 'invalidated') {
-      invalidateAndLock();
-    } else if (payload.status === 'submitted') {
-      // If server marks as submitted elsewhere, reflect immediately
-      document.getElementById('examForm').submit();
-    }
-  });
-} catch (e) { /* ignore if socket.io not available */ }
-
-function submitExam() {
-    const form = document.getElementById('examForm');
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    isSubmitting = true;
-    // Submit via AJAX to avoid full page reload (prevents session guard from invalidation)
-    const formData = new FormData(form);
-    // Convert to application/x-www-form-urlencoded so Express can parse without multer
-    const params = new URLSearchParams();
-    for (const [key, value] of formData.entries()) {
-        params.append(key, value);
-    }
-    fetch(form.action, { method: 'POST', body: params, headers: { 'x-requested-with': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Accept': 'application/json' } })
-        .then(r => r.json())
-        .then(data => {
-            if (data && data.ok && data.resultUrl) {
-                window.location.replace(data.resultUrl);
-            } else {
-                // Fallback: enable button if server rejected
-                btn.disabled = false;
-                isSubmitting = false;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                document.getElementById('examForm').submit();
             }
-        })
-        .catch(() => { btn.disabled = false; isSubmitting = false; });
-}
-
-// Auto-submit when time runs out
-window.addEventListener('beforeunload', function(e) {
-    if (!invalidated && !isSubmitting && timeLeft > 0) {
-        invalidateAndLock();
-        e.preventDefault();
-        e.returnValue = '';
-    }
-});
-
-// Show only one question at a time
-const cards = Array.from(document.querySelectorAll('.question-card'));
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
-const submitBtn = document.getElementById('submitBtn');
-const progressLabel = document.getElementById('progressLabel');
-let currentIndex = 0;
-
-function updateVisibility() {
-    cards.forEach((el, idx) => {
-        if (idx === currentIndex) {
-            el.style.display = '';
-            // Ensure current question radios are required
-            el.querySelectorAll('input[type="radio"]').forEach(i => i.required = true);
-        } else {
-            el.style.display = 'none';
-            // Avoid required validation on hidden questions until submit
-            el.querySelectorAll('input[type="radio"]').forEach(i => i.required = false);
+            timeLeft--;
         }
-    });
-    prevBtn.disabled = currentIndex === 0;
-    nextBtn.disabled = currentIndex === cards.length - 1;
-    submitBtn.style.display = currentIndex === cards.length - 1 ? '' : 'none';
-    if (progressLabel) {
-        progressLabel.textContent = `Question ${currentIndex + 1} of ${cards.length}`;
-    }
-}
 
-prevBtn.addEventListener('click', function(){
-    if (currentIndex > 0) {
-        currentIndex--;
+        const timerInterval = setInterval(updateTimer, 1000);
+
+        // Realtime: listen for server-side invalidation/submission
+        try {
+            const socket = io();
+            socket.emit('join-submission', submissionId);
+            socket.on('submission:update', (payload) => {
+                if (!payload) return;
+                if (payload.status === 'invalidated') {
+                    invalidateAndLock();
+                } else if (payload.status === 'submitted') {
+                    // If server marks as submitted elsewhere, reflect immediately
+                    document.getElementById('examForm').submit();
+                }
+            });
+        } catch (e) { /* ignore if socket.io not available */ }
+
+        function submitExam() {
+            const form = document.getElementById('examForm');
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            isSubmitting = true;
+            // Submit via AJAX to avoid full page reload (prevents session guard from invalidation)
+            const formData = new FormData(form);
+            // Convert to application/x-www-form-urlencoded so Express can parse without multer
+            const params = new URLSearchParams();
+            for (const [key, value] of formData.entries()) {
+                params.append(key, value);
+            }
+            fetch(form.action, { method: 'POST', body: params, headers: { 'x-requested-with': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.ok && data.resultUrl) {
+                        window.location.replace(data.resultUrl);
+                    } else {
+                        // Fallback: enable button if server rejected
+                        btn.disabled = false;
+                        isSubmitting = false;
+                    }
+                })
+                .catch(() => { btn.disabled = false; isSubmitting = false; });
+        }
+
+        // Auto-submit when time runs out
+        window.addEventListener('beforeunload', function (e) {
+            if (!invalidated && !isSubmitting && timeLeft > 0) {
+                invalidateAndLock();
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        // Attempt to enter fullscreen when exam starts (with fallback on first user interaction)
+        (function () {
+            function requestFullscreen() {
+                const el = document.documentElement;
+                if (el.requestFullscreen) return el.requestFullscreen();
+                if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+                if (el.msRequestFullscreen) return el.msRequestFullscreen();
+                return Promise.reject('fullscreen_not_supported');
+            }
+
+            function attachUserGestureOnce() {
+                const once = () => {
+                    requestFullscreen().finally(() => {
+                        document.removeEventListener('click', once, true);
+                        document.removeEventListener('keydown', once, true);
+                        document.removeEventListener('touchstart', once, true);
+                    });
+                };
+                document.addEventListener('click', once, true);
+                document.addEventListener('keydown', once, true);
+                document.addEventListener('touchstart', once, true);
+            }
+
+            function enterFullscreenWithFallback() {
+                try {
+                    const p = requestFullscreen();
+                    if (p && typeof p.catch === 'function') p.catch(() => attachUserGestureOnce());
+                } catch (e) {
+                    attachUserGestureOnce();
+                }
+            }
+
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                setTimeout(enterFullscreenWithFallback, 0);
+            } else {
+                document.addEventListener('DOMContentLoaded', enterFullscreenWithFallback);
+            }
+        })();
+
+        // Ensure focus class
+        document.body.classList.add('exam-focus');
+
+        // Fullscreen prompt UI
+        (function () {
+            const fsPrompt = document.getElementById('fsPrompt');
+            const fsBtn = document.getElementById('fsEnterBtn');
+            function isFs() {
+                return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+            }
+            function updateFsBanner() {
+                const enabled = isFs();
+                fsPrompt.style.display = enabled ? 'none' : '';
+                document.body.classList.toggle('exam-focus', !enabled ? true : true);
+            }
+            function reqFs() {
+                const el = document.documentElement;
+                const p = (el.requestFullscreen && el.requestFullscreen()) ||
+                    (el.webkitRequestFullscreen && el.webkitRequestFullscreen()) ||
+                    (el.msRequestFullscreen && el.msRequestFullscreen());
+                if (p && typeof p.catch === 'function') p.catch(() => { });
+            }
+            if (fsBtn) fsBtn.addEventListener('click', reqFs);
+            ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(evt => document.addEventListener(evt, updateFsBanner));
+            // Show banner soon after load
+            setTimeout(updateFsBanner, 300);
+        })();
+
+        // Show only one question at a time
+        const cards = Array.from(document.querySelectorAll('.question-card'));
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const progressLabel = document.getElementById('progressLabel');
+        const progressLabelTop = document.getElementById('progressLabelTop');
+        const progressBar = document.getElementById('examProgress');
+        let currentIndex = 0;
+
+        function updateVisibility() {
+            cards.forEach((el, idx) => {
+                if (idx === currentIndex) {
+                    el.style.display = '';
+                    // Ensure current question radios are required
+                    el.querySelectorAll('input[type="radio"]').forEach(i => i.required = true);
+                } else {
+                    el.style.display = 'none';
+                    // Avoid required validation on hidden questions until submit
+                    el.querySelectorAll('input[type="radio"]').forEach(i => i.required = false);
+                }
+            });
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === cards.length - 1;
+            submitBtn.style.display = currentIndex === cards.length - 1 ? '' : 'none';
+            if (progressLabel) {
+                const text = `Question ${currentIndex + 1} of ${cards.length}`;
+                progressLabel.textContent = text;
+                if (progressLabelTop) progressLabelTop.textContent = text;
+            }
+            if (progressBar) {
+                const pct = Math.max(0, Math.min(100, Math.round(((currentIndex + 1) / cards.length) * 100)));
+                progressBar.style.width = pct + '%';
+            }
+        }
+
+        prevBtn.addEventListener('click', function () {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateVisibility();
+            }
+        });
+
+        nextBtn.addEventListener('click', function () {
+            if (currentIndex < cards.length - 1) {
+                currentIndex++;
+                updateVisibility();
+            }
+        });
+
+        // Initialize view
         updateVisibility();
-    }
-});
 
-nextBtn.addEventListener('click', function(){
-    if (currentIndex < cards.length - 1) {
-        currentIndex++;
-        updateVisibility();
-    }
-});
+        // Enhance option selection highlighting
+        document.querySelectorAll('.question-card input[type="radio"]').forEach(input => {
+            input.addEventListener('change', function () {
+                const group = this.name;
+                document.querySelectorAll(`input[name="${group}"]`).forEach(i => {
+                    const wrapper = i.closest('.option');
+                    if (wrapper) wrapper.classList.toggle('active', i.checked);
+                });
+            });
+        });
+    </script>
 
-// Initialize view
-updateVisibility();
-</script>
-
-<%- include('../partials/footer') %>
+    <%- include('../partials/footer') %>

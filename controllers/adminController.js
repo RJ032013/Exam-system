@@ -234,7 +234,8 @@ exports.postCreateExam = async (req, res) => {
             duration: parseInt(duration),
             questions: createdQuestions,
             createdBy: req.session.user._id,
-            category: req.body.category || null
+            category: req.body.category || null,
+            revealAnswersToStudents: req.body.revealAnswersToStudents === 'on'
         });
 
         await exam.save();
@@ -335,6 +336,28 @@ exports.toggleExamStatus = async (req, res) => {
         console.error(err);
         req.flash('error', 'Error updating exam');
         res.redirect('/admin/manage-exams');
+    }
+};
+
+// Toggle whether students can see correct answers in their results for a given exam
+exports.toggleRevealAnswers = async (req, res) => {
+    try {
+        const exam = await Exam.findById(req.params.id);
+        if (!exam) return res.status(404).json({ ok: false, error: 'not_found' });
+        const bodyReveal = (req.body && (req.body.reveal === true || req.body.reveal === 'true' || req.body.reveal === 'on'));
+        exam.revealAnswersToStudents = bodyReveal;
+        await exam.save();
+        try {
+            const io = req.app.get('io');
+            if (io) {
+                io.to('admins').emit('exams:update', { type: 'reveal', examId: String(exam._id), reveal: exam.revealAnswersToStudents });
+                io.to(`exam:${String(exam._id)}`).emit('exam:revealAnswers', { examId: String(exam._id), reveal: exam.revealAnswersToStudents });
+            }
+        } catch(e) {}
+        return res.json({ ok: true, reveal: exam.revealAnswersToStudents });
+    } catch (err) {
+        console.error('toggleRevealAnswers error', err);
+        return res.status(500).json({ ok: false, error: 'server_error' });
     }
 };
 
@@ -618,6 +641,7 @@ exports.postEditExam = async (req, res) => {
         exam.description = description;
         exam.duration = parseInt(duration);
         exam.category = category || null;
+        exam.revealAnswersToStudents = req.body.revealAnswersToStudents === 'on';
 
         // Update existing questions inline
         if (existingQuestions) {

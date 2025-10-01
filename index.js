@@ -91,6 +91,9 @@ io.on('connection', (socket) => {
     socket.on('join-user', (userId) => {
         if (userId) socket.join(`user:${userId}`);
     });
+    socket.on('join-exam', (examId) => {
+        if (examId) socket.join(`exam:${examId}`);
+    });
 });
 
 // Helper emitter
