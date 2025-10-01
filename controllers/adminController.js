@@ -417,6 +417,8 @@ exports.postManualGrade = async (req, res) => {
         ans.manualScore = s;
         ans.manualBy = req.session.user && req.session.user._id ? req.session.user._id : null;
         ans.manualAt = new Date();
+        // Derive correctness for non-MCQ from manual score (>0 => correct)
+        ans.isCorrect = s > 0;
 
         // Recompute total score
         let newTotal = 0;
@@ -448,6 +450,87 @@ exports.postManualGrade = async (req, res) => {
         console.error('postManualGrade error', err);
         req.flash('error', 'Failed to save manual score');
         return res.redirect('/admin/exam-reports');
+    }
+};
+
+// JSON: Update an answer's correctness and/or manual score with autosave
+exports.updateAnswerJson = async (req, res) => {
+    try {
+        const { id, idx } = { id: req.params.id, idx: req.params.idx };
+        const answerIndex = parseInt(idx);
+        if (Number.isNaN(answerIndex) || answerIndex < 0) {
+            return res.status(400).json({ ok: false, error: 'invalid_index' });
+        }
+
+        const submission = await Submission.findById(id).populate('answers.question');
+        if (!submission) {
+            return res.status(404).json({ ok: false, error: 'not_found' });
+        }
+
+        if (!submission.answers || !submission.answers[answerIndex]) {
+            return res.status(404).json({ ok: false, error: 'answer_not_found' });
+        }
+
+        const ans = submission.answers[answerIndex];
+        const q = ans.question;
+        if (!q) {
+            return res.status(404).json({ ok: false, error: 'question_not_found' });
+        }
+
+        const hasManualScore = Object.prototype.hasOwnProperty.call(req.body, 'manualScore');
+
+        // Update manual score only for non-MCQ
+        const isMcq = Array.isArray(q.options) && q.options.length > 0;
+        if (hasManualScore) {
+            if (isMcq) {
+                // Ignore manual score for MCQ to avoid conflicts
+            } else {
+                const maxPoints = Number(q.points || 0);
+                let s = parseFloat(req.body.manualScore);
+                if (Number.isNaN(s) || s < 0) s = 0;
+                if (s > maxPoints) s = maxPoints;
+                ans.manualScore = s;
+                ans.manualBy = req.session.user && req.session.user._id ? req.session.user._id : null;
+                ans.manualAt = new Date();
+                // Derive correctness for non-MCQ from manual score (>0 => correct)
+                ans.isCorrect = s > 0;
+            }
+        }
+
+
+        // Recompute total score
+        let newTotal = 0;
+        submission.answers.forEach(a => {
+            const aq = a.question;
+            const aqIsMcq = aq && Array.isArray(aq.options) && aq.options.length > 0;
+            if (aqIsMcq) {
+                if (a.isCorrect && aq && typeof aq.points === 'number') newTotal += aq.points;
+            } else {
+                if (typeof a.manualScore === 'number') {
+                    newTotal += a.manualScore;
+                } else if (a.isCorrect && aq && typeof aq.points === 'number') {
+                    newTotal += aq.points;
+                }
+            }
+        });
+
+        submission.score = newTotal;
+        await submission.save();
+
+        try {
+            const io = req.app.get('io');
+            if (io) io.to(`submission:${submission._id}`).emit('submission:update', {
+                score: newTotal,
+                answerIndex,
+                isCorrect: ans.isCorrect,
+                manualScore: ans.manualScore
+            });
+        } catch (e) { /* noop */ }
+
+        return res.json({ ok: true, score: newTotal, answerIndex, isCorrect: ans.isCorrect, manualScore: ans.manualScore });
+    } catch (err) {
+        console.error('updateAnswerJson error', err);
+        return res.status(500).json({ ok: false, error: 'server_error' });
     }
 };
 

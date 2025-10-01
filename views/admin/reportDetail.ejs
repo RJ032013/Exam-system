@@ -36,7 +36,7 @@
                     <i class="bi bi-123 fs-4 text-success"></i>
                     <span class="text-muted">Score</span>
                 </div>
-                <div class="fs-3 fw-bold"><%= submission.score %>/<%= submission.totalQuestions %></div>
+                <div class="fs-3 fw-bold"><span id="submission-total-score" data-submission-id="<%= submission._id %>"><%= submission.score %></span>/<%= submission.totalQuestions %></div>
                 <span class="badge <%= submission.status === 'submitted' ? 'bg-success' : 'bg-secondary' %>"><%= submission.status %></span>
             </div>
         </div>
@@ -62,7 +62,7 @@
     </div>
 
     <% submission.answers.forEach((ans, idx) => { %>
-      <div class="border rounded p-3 mb-3">
+      <div class="border rounded p-3 mb-3" data-answer-block data-answer-index="<%= idx %>">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-2 gap-2">
             <div class="me-2">
                 <div class="d-flex align-items-center gap-2">
@@ -76,7 +76,7 @@
                     <div class="mt-2"><img src="<%= ans.question.imagePath %>" class="img-fluid rounded border"></div>
                 <% } %>
             </div>
-            <span class="badge <%= ans.isCorrect ? 'bg-success' : 'bg-danger' %>"><%= ans.isCorrect ? 'Correct' : 'Wrong' %></span>
+            <span class="badge <%= ans.isCorrect ? 'bg-success' : 'bg-danger' %>" data-answer-correct><%= ans.isCorrect ? 'Correct' : 'Wrong' %></span>
         </div>
 
         <% if (ans.selectedOption !== null && ans.selectedOption !== undefined && ans.question && Array.isArray(ans.question.options) && ans.question.options.length) { %>
@@ -115,24 +115,12 @@
 
             <div class="row g-2 mt-2">
                 <div class="col-12 col-md-8">
-                    <% if (typeof ans.manualScore === 'number') { %>
-                        <span class="badge bg-primary">Manual Score: <%= ans.manualScore %> / <%= ans.question.points %></span>
-                    <% } %>
-                </div>
-            </div>
-
-            <div class="row g-2 mt-2">
-                <div class="col-12 col-md-8">
-                    <form class="d-flex gap-2 align-items-end" method="POST" action="/admin/exam-reports/<%= submission._id %>/manual-grade">
+                    <div class="d-flex gap-3 align-items-end flex-wrap">
                         <div class="flex-grow-1">
                             <label class="form-label">Set Manual Score (0 - <%= ans.question.points %>)</label>
-                            <input type="number" class="form-control" name="score" min="0" max="<%= ans.question.points %>" step="0.1" value="<%= typeof ans.manualScore === 'number' ? ans.manualScore : '' %>">
-                            <input type="hidden" name="answerIndex" value="<%= idx %>">
+                            <input type="number" class="form-control" data-autosave-score min="0" max="<%= ans.question.points %>" step="0.1" value="<%= typeof ans.manualScore === 'number' ? ans.manualScore : '' %>" placeholder="Enter score">
                         </div>
-                        <div>
-                            <button type="submit" class="btn btn-sm btn-warning"><i class="bi bi-clipboard-check"></i> Save</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         <% } %>
