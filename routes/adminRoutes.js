@@ -50,6 +50,7 @@ router.get('/toggle-exam/:id', requireAdmin, adminController.toggleExamStatus);
 router.get('/exam-reports', adminController.getExamReports);
 router.get('/exam-reports/:id', adminController.getExamReportDetail);
 router.post('/exam-reports/reset/:id', requireAdmin, adminController.resetSubmission);
+router.post('/exam-reports/:id/manual-grade', adminController.postManualGrade);
 // Faculty and student management
 router.get('/manage-faculty', requireAdmin, adminController.getManageFaculty);
 router.post('/manage-faculty', requireAdmin, adminController.postCreateFaculty);

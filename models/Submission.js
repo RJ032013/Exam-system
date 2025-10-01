@@ -18,7 +18,11 @@ const SubmissionSchema = new mongoose.Schema({
         },
         selectedOption: Number,
         isCorrect: Boolean,
-        textAnswer: { type: String, default: '' }
+        textAnswer: { type: String, default: '' },
+        // Manual grading (for open-ended and image questions)
+        manualScore: { type: Number, default: null },
+        manualBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+        manualAt: { type: Date, default: null }
     }],
     score: {
         type: Number,

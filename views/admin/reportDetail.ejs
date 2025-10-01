@@ -112,6 +112,29 @@
                     </div>
                 </div>
             </div>
+
+            <div class="row g-2 mt-2">
+                <div class="col-12 col-md-8">
+                    <% if (typeof ans.manualScore === 'number') { %>
+                        <span class="badge bg-primary">Manual Score: <%= ans.manualScore %> / <%= ans.question.points %></span>
+                    <% } %>
+                </div>
+            </div>
+
+            <div class="row g-2 mt-2">
+                <div class="col-12 col-md-8">
+                    <form class="d-flex gap-2 align-items-end" method="POST" action="/admin/exam-reports/<%= submission._id %>/manual-grade">
+                        <div class="flex-grow-1">
+                            <label class="form-label">Set Manual Score (0 - <%= ans.question.points %>)</label>
+                            <input type="number" class="form-control" name="score" min="0" max="<%= ans.question.points %>" step="0.1" value="<%= typeof ans.manualScore === 'number' ? ans.manualScore : '' %>">
+                            <input type="hidden" name="answerIndex" value="<%= idx %>">
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-sm btn-warning"><i class="bi bi-clipboard-check"></i> Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         <% } %>
       </div>
     <% }) %>

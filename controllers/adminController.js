@@ -373,6 +373,84 @@ exports.getExamReportDetail = async (req, res) => {
     }
 };
 
+// Manually grade a specific answer (open/image). Recomputes total score.
+exports.postManualGrade = async (req, res) => {
+    try {
+        const { id } = req.params; // submission id
+        const { answerIndex, score } = req.body;
+        const idx = parseInt(answerIndex);
+        if (Number.isNaN(idx)) {
+            req.flash('error', 'Invalid answer index');
+            return res.redirect(`/admin/exam-reports/${id}`);
+        }
+
+        const submission = await Submission.findById(id).populate('answers.question');
+        if (!submission) {
+            req.flash('error', 'Submission not found');
+            return res.redirect('/admin/exam-reports');
+        }
+
+        if (!submission.answers || !submission.answers[idx]) {
+            req.flash('error', 'Answer not found');
+            return res.redirect(`/admin/exam-reports/${id}`);
+        }
+
+        const ans = submission.answers[idx];
+        const q = ans.question;
+        if (!q) {
+            req.flash('error', 'Question not found for this answer');
+            return res.redirect(`/admin/exam-reports/${id}`);
+        }
+
+        // Only allow manual on non-MCQ (no options)
+        const isMcq = Array.isArray(q.options) && q.options.length > 0;
+        if (isMcq) {
+            req.flash('error', 'Manual grading not applicable for MCQ');
+            return res.redirect(`/admin/exam-reports/${id}`);
+        }
+
+        const maxPoints = Number(q.points || 0);
+        let s = parseFloat(score);
+        if (Number.isNaN(s) || s < 0) s = 0;
+        if (s > maxPoints) s = maxPoints;
+
+        ans.manualScore = s;
+        ans.manualBy = req.session.user && req.session.user._id ? req.session.user._id : null;
+        ans.manualAt = new Date();
+
+        // Recompute total score
+        let newTotal = 0;
+        submission.answers.forEach(a => {
+            const aq = a.question;
+            const aqIsMcq = aq && Array.isArray(aq.options) && aq.options.length > 0;
+            if (aqIsMcq) {
+                if (a.isCorrect && aq && typeof aq.points === 'number') newTotal += aq.points;
+            } else {
+                if (typeof a.manualScore === 'number') {
+                    newTotal += a.manualScore;
+                } else if (a.isCorrect && aq && typeof aq.points === 'number') {
+                    newTotal += aq.points;
+                }
+            }
+        });
+
+        submission.score = newTotal;
+        await submission.save();
+
+        try {
+            const io = req.app.get('io');
+            if (io) io.to(`submission:${submission._id}`).emit('submission:update', { score: newTotal });
+        } catch (e) { /* noop */ }
+
+        req.flash('success', 'Manual score saved');
+        return res.redirect(`/admin/exam-reports/${id}`);
+    } catch (err) {
+        console.error('postManualGrade error', err);
+        req.flash('error', 'Failed to save manual score');
+        return res.redirect('/admin/exam-reports');
+    }
+};
+
 // List all invalidated submissions with student and exam details
 exports.getInvalidatedSubmissions = async (req, res) => {
     try {
