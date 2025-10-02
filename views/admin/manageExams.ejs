@@ -1,302 +1,94 @@
 <%- include('../partials/header', { title: 'Manage Exams' }) %>
 
-<style>
-    :root {
-        --primary-gradient: linear-gradient(135deg, #0d6efd 0%, #5ab1ff 100%);
-        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
-        --card-hover-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
-    }
-    
-    body {
-        background-color: #f8f9fc;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        color: #4a5568;
-    }
-    
-    .page-header {
-        background-color: white;
-        border-radius: 12px;
-        box-shadow: var(--card-shadow);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-    
-    .main-card {
-        border-radius: 16px;
-        border: none;
-        box-shadow: var(--card-shadow);
-        overflow: hidden;
-    }
-    
-    .table-container {
-        border-radius: 12px;
-        overflow: hidden;
-    }
-    
-    .table thead th {
-        border-bottom: 2px solid #e2e8f0;
-        font-weight: 600;
-        color: #2d3748;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 0.05em;
-        padding: 1rem;
-    }
-    
-    .table tbody td {
-        padding: 1rem;
-        vertical-align: middle;
-    }
-    
-    .table tbody tr {
-        transition: all 0.2s ease;
-    }
-    
-    .table tbody tr:hover {
-        background-color: #f7fafc;
-    }
-    
-    .btn {
-        border-radius: 8px;
-        font-weight: 500;
-        padding: 0.5rem 1rem;
-        transition: all 0.2s ease;
-    }
-    
-    .btn-primary {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-    }
-    
-    .btn-primary:hover {
-        background-color: #0b5ed7;
-        border-color: #0a58ca;
-        transform: translateY(-2px);
-    }
-    
-    .btn-outline-primary {
-        border-color: #0d6efd;
-        color: #0d6efd;
-    }
-    
-    .btn-outline-primary:hover {
-        background-color: #0d6efd;
-        color: white;
-        transform: translateY(-2px);
-    }
-    
-    .btn-outline-secondary {
-        border-color: #e2e8f0;
-        color: #4a5568;
-    }
-    
-    .btn-outline-secondary:hover {
-        background-color: #f7fafc;
-        border-color: #cbd5e0;
-        transform: translateY(-2px);
-    }
-    
-    .btn-success, .btn-warning {
-        font-size: 0.875rem;
-        padding: 0.5rem 1rem; /* Increased padding */
-        margin-right: 0.5rem; /* Added right margin */
-    }
-    
-    .btn-sm {
-        border-radius: 6px;
-        font-weight: 500;
-        margin-bottom: 0.5rem; /* Added bottom margin for mobile */
-    }
-    
-    .form-control {
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        padding: 0.625rem 0.875rem;
-        transition: all 0.2s ease;
-    }
-    
-    .form-control:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
-    }
-    
-    .input-group-text {
-        border-radius: 8px 0 0 8px;
-        background-color: #f7fafc;
-        border-color: #e2e8f0;
-    }
-    
-    .badge {
-        border-radius: 6px;
-        padding: 0.35em 0.65em;
-        font-weight: 500;
-        font-size: 0.75rem;
-    }
-    
-    .form-check-input {
-        width: 3rem;
-        height: 1.5rem;
-        cursor: pointer;
-    }
-    
-    .form-check-label {
-        cursor: pointer;
-        font-size: 0.875rem;
-    }
-    
-    .action-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem; /* Increased gap between buttons */
-        margin-top: 0.5rem; /* Added top margin */
-    }
-    
-    /* Special styling for active/inactive buttons */
-    .action-buttons .btn-success,
-    .action-buttons .btn-warning {
-        min-width: 110px; /* Ensure consistent width */
-    }
-    
-    @media (max-width: 768px) {
-        .table thead th {
-            font-size: 0.7rem;
-            padding: 0.75rem 0.5rem;
-        }
-        
-        .table tbody td {
-            padding: 0.75rem 0.5rem;
-            font-size: 0.85rem;
-        }
-        
-        .action-buttons {
-            flex-direction: column;
-            gap: 0.75rem; /* Slightly reduced gap for mobile */
-        }
-        
-        .btn-sm {
-            width: 100%;
-            justify-content: center;
-            margin-right: 0; /* Remove margin on mobile */
-            margin-bottom: 0.75rem; /* Increased bottom margin */
-        }
-    }
-</style>
+<div class="row align-items-center mb-3 g-2">
+    <div class="col-12 col-md-6">
+        <h2 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-gear"></i> Manage Exams</h2>
+        <small class="text-muted">Create, activate and edit your exams.</small>
+    </div>
+    <div class="col-12 col-md-6">
+        <div class="d-flex flex-wrap justify-content-md-end gap-2">
+            <a href="/admin/create-exam" class="btn btn-primary"><i class="bi bi-plus-circle"></i> New Exam</a>
+            <a href="/admin/exam-reports" class="btn btn-outline-primary"><i class="bi bi-bar-chart"></i> Reports</a>
+        </div>
+    </div>
+</div>
 
-<div class="container-fluid py-4">
-    <!-- Header Section -->
-    <div class="page-header">
-        <div class="row align-items-center g-3">
-            <div class="col-12 col-md-6">
-                <h2 class="mb-1 d-flex align-items-center gap-2">
-                    <i class="bi bi-gear text-primary"></i> 
-                    <span class="fw-bold">Manage Exams</span>
-                </h2>
-                <small class="text-muted">Create, activate and edit your exams.</small>
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="row g-2 mb-3">
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input id="examSearch" class="form-control" placeholder="Search by title, subject, category">
+                </div>
             </div>
-            <div class="col-12 col-md-6">
-                <div class="d-flex flex-wrap justify-content-md-end gap-2">
-                    <a href="/admin/create-exam" class="btn btn-primary d-flex align-items-center gap-1">
-                        <i class="bi bi-plus-circle"></i> New Exam
-                    </a>
-                    <a href="/admin/exam-reports" class="btn btn-outline-primary d-flex align-items-center gap-1">
-                        <i class="bi bi-bar-chart"></i> Reports
-                    </a>
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="btn-group w-100" role="group">
+                    <button type="button" class="btn btn-outline-secondary active" data-filter="">All</button>
+                    <button type="button" class="btn btn-outline-secondary" data-filter="active">Active</button>
+                    <button type="button" class="btn btn-outline-secondary" data-filter="inactive">Inactive</button>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Main Card -->
-    <div class="card main-card shadow-sm">
-        <div class="card-body p-0">
-            <!-- Filters Section -->
-            <div class="p-3 border-bottom bg-light">
-                <div class="row g-3">
-                    <div class="col-12 col-md-6 col-lg-5">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input id="examSearch" class="form-control" placeholder="Search by title, subject, category">
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <div class="btn-group w-100" role="group">
-                            <button type="button" class="btn btn-outline-secondary active" data-filter="">All</button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter="active">Active</button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter="inactive">Inactive</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Table Section -->
-            <div class="table-container">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Subject</th>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>Description</th>
-                                <th>Questions</th>
-                                <th>Duration</th>
-                                <th>Status</th>
-                                <th>Created By</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% exams.forEach(exam => { %>
-                                <tr data-status="<%= exam.isActive ? 'active' : 'inactive' %>">
-                                    <td><%= exam.subject || '-' %></td>
-                                    <td><strong><%= exam.title %></strong></td>
-                                    <td><%= exam.category ? exam.category.name : '-' %></td>
-                                    <td class="text-truncate" style="max-width: 260px;" title="<%- exam.description %>">
-                                        <%= exam.description.length > 60 ? exam.description.substring(0, 60) + '…' : exam.description %>
-                                    </td>
-                                    <td><%= exam.questions.length %></td>
-                                    <td><%= exam.duration %> min</td>
-                                    <td>
-                                        <% if (exam.isActive) { %>
-                                            <span class="badge bg-success">Active</span>
-                                        <% } else { %>
-                                            <span class="badge bg-secondary">Inactive</span>
-                                        <% } %>
-                                    </td>
-                                    <td><%= exam.createdBy.username %></td>
-                                    <td>
-                                        <div class="d-flex flex-column gap-2">
-                                            <div class="form-check form-switch">
-                                                <input class="form-check-input" type="checkbox" role="switch"
-                                                       id="reveal-<%= exam._id %>" <%= exam.revealAnswersToStudents ? 'checked' : '' %>
-                                                       onchange="toggleRevealExam('<%= exam._id %>', this)">
-                                                <label class="form-check-label" for="reveal-<%= exam._id %>">
-                                                    Allow students to see correct answers
-                                                </label>
-                                            </div>
-                                            <div class="action-buttons">
-                                                <a href="/admin/toggle-exam/<%= exam._id %>" 
-                                                   class="btn btn-sm <%= exam.isActive ? 'btn-warning' : 'btn-success' %>"
-                                                   data-action="<%= exam.isActive ? 'deactivate' : 'activate' %>"
-                                                   onclick="return confirm('Are you sure you want to ' + this.dataset.action + ' this exam?')">
-                                                    <i class="bi bi-<%= exam.isActive ? 'pause' : 'play' %>"></i>
-                                                    <%= exam.isActive ? 'Deactivate' : 'Activate' %>
-                                                </a>
-                                                <a href="/admin/edit-exam/<%= exam._id %>" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="bi bi-pencil"></i> Edit
-                                                </a>
-                                                <a href="/admin/exam-reports" class="btn btn-sm btn-outline-primary">
-                                                    <i class="bi bi-bar-chart"></i> Reports
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <% }); %>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Questions<hr></th>
+                        <th>Status</th>
+                        <th>Created By</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% exams.forEach(exam => { %>
+                        <tr data-status="<%= exam.isActive ? 'active' : 'inactive' %>">
+                            <td><strong><%= exam.title %></strong></td>
+                            <td><%= exam.category ? exam.category.name : '-' %></td>
+                            <td class="text-truncate" style="max-width: 260px;" title="<%- exam.description %>"><%= exam.description.length > 60 ? exam.description.substring(0, 60) + '…' : exam.description %></td>
+                            <td><%= exam.questions.length %> <hr> <%= exam.duration %> min</td>
+                            <td>
+                                <% if (exam.isActive) { %>
+                                    <span class="badge bg-success">Active</span>
+                                <% } else { %>
+                                    <span class="badge bg-secondary">Inactive</span>
+                                <% } %>
+                            </td>
+                            <td><%= exam.createdBy.username %></td>
+                            <td>
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               id="reveal-<%= exam._id %>" <%= exam.revealAnswersToStudents ? 'checked' : '' %>
+                                               onchange="toggleRevealExam('<%= exam._id %>', this)">
+                                        <label class="form-check-label" for="reveal-<%= exam._id %>">
+                                            Show Answer
+                                        </label>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-1">
+                                    <a href="/admin/toggle-exam/<%= exam._id %>" 
+                                       class="btn btn-sm <%= exam.isActive ? 'btn-warning' : 'btn-success' %>"
+                                       data-action="<%= exam.isActive ? 'deactivate' : 'activate' %>"
+                                       onclick="return confirm('Are you sure you want to ' + this.dataset.action + ' this exam?')">
+                                        <i class="bi bi-<%= exam.isActive ? 'pause' : 'play' %>"></i>
+                                        <%= exam.isActive ? 'Deactivate' : 'Activate' %>
+                                    </a>
+                                    <a href="/admin/edit-exam/<%= exam._id %>" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                    <a href="/admin/exam-reports" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-bar-chart"></i> Reports
+                                    </a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
