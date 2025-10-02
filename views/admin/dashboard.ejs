@@ -1,121 +1,410 @@
 <%- include('../partials/header', { title: 'Admin Dashboard' }) %>
 
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #0d6efd 0%, #5ab1ff 100%);
+        --secondary-gradient: linear-gradient(135deg, #6c757d 0%, #adb5bd 100%);
+        --success-gradient: linear-gradient(135deg, #198754 0%, #75b798 100%);
+        --info-gradient: linear-gradient(135deg, #0dcaf0 0%, #73c5e5 100%);
+        --warning-gradient: linear-gradient(135deg, #ffc107 0%, #ffdb8a 100%);
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        --card-hover-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    body {
+        background-color: #f8f9fc;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #4a5568;
+    }
+    
+    .dashboard-header {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: var(--card-shadow);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .dash-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card {
+        transition: all 0.3s ease;
+        border: none;
+        border-radius: 16px;
+        overflow: hidden;
+        height: 100%;
+        background-color: white;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--card-hover-shadow);
+    }
+    
+    .stat-card:hover .dash-icon {
+        transform: scale(1.1);
+    }
+    
+    .welcome-banner {
+        background: var(--primary-gradient);
+        border-radius: 16px;
+        color: white;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .welcome-banner::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(30%, -30%);
+    }
+    
+    .welcome-banner::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(-30%, 30%);
+    }
+    
+    .table-container {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+        background-color: white;
+    }
+    
+    .table thead th {
+        border-bottom: 2px solid #e2e8f0;
+        font-weight: 600;
+        color: #2d3748;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding: 1rem;
+    }
+    
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+    }
+    
+    .table tbody tr {
+        transition: all 0.2s ease;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f7fafc;
+    }
+    
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+        transform: translateY(-2px);
+    }
+    
+    .btn-outline-secondary {
+        border-color: #0973fd;
+        color: #4a5568;
+    }
+    
+    .btn-outline-secondary:hover {
+        background-color: #087bf5;
+        border-color: #087bf5;
+        transform: translateY(-2px);
+    }
+    
+    .btn-outline-primary {
+        border-color: #0d6efd;
+        color: #0d6efd;
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: #0d6efd;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .btn-group .btn {
+        border-radius: 8px;
+        margin: 0 2px;
+    }
+    
+    .form-control {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        padding: 0.625rem 0.875rem;
+        transition: all 0.2s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+    }
+    
+    .input-group-text {
+        border-radius: 8px 0 0 8px;
+        background-color: #f7fafc;
+        border-color: #e2e8f0;
+    }
+    
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+        background-color: #e2e8f0;
+    }
+    
+    .badge {
+        border-radius: 6px;
+        padding: 0.35em 0.65em;
+        font-weight: 500;
+        font-size: 0.75rem;
+    }
+    
+    .card {
+        border-radius: 16px;
+        border: none;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .card-header {
+        background-color: transparent;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1.25rem;
+    }
+    
+    @media (max-width: 768px) {
+        .dash-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.5rem;
+        }
+        
+        .stat-card h3 {
+            font-size: 1.5rem;
+        }
+        
+        .welcome-banner h4 {
+            font-size: 1.25rem;
+        }
+        
+        .table thead th {
+            font-size: 0.7rem;
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .table tbody td {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.85rem;
+        }
+    }
+    
+    /* Animation for stats cards */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .stat-card {
+        animation: fadeInUp 0.5s ease forwards;
+        opacity: 0;
+    }
+    
+    .stat-card:nth-child(1) {
+        animation-delay: 0.1s;
+    }
+    
+    .stat-card:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+    
+    .stat-card:nth-child(3) {
+        animation-delay: 0.3s;
+    }
+    
+    .stat-card:nth-child(4) {
+        animation-delay: 0.4s;
+    }
+</style>
+
 <div class="container-fluid py-4">
-    <div class="row g-3 align-items-center mb-2">
-        <div class="col-12 col-md-7">
-            <h2 class="mb-1 d-flex align-items-center gap-2"><i class="bi bi-speedometer2"></i> Admin Dashboard</h2>
-            <p class="text-muted mb-0">Overview of exams, submissions, categories and quick actions.</p>
-        </div>
-        <div class="col-12 col-md-5">
-            <div class="d-flex flex-wrap justify-content-md-end gap-2">
-                <a href="/admin/create-exam" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Create Exam</a>
-                <a href="/admin/manage-exams" class="btn btn-outline-secondary"><i class="bi bi-gear"></i> Manage</a>
-                <a href="/admin/exam-reports" class="btn btn-outline-primary"><i class="bi bi-bar-chart"></i> Reports</a>
+    <!-- Header Section -->
+    <div class="dashboard-header">
+        <div class="row g-3 align-items-center">
+            <div class="col-12 col-md-7">
+                <h2 class="mb-1 d-flex align-items-center gap-2">
+                    <i class="bi bi-speedometer2 text-primary"></i> 
+                    <span class="fw-bold">Admin Dashboard</span>
+                </h2>
+                <p class="text-muted mb-0">Overview of exams, submissions, categories and quick actions.</p>
+            </div>
+            <div class="col-12 col-md-5">
+                <div class="d-flex flex-wrap justify-content-md-end gap-2">
+                    <a href="/admin/create-exam" class="btn btn-primary d-flex align-items-center gap-1">
+                        <i class="bi bi-plus-circle"></i> Create Exam
+                    </a>
+                    <a href="/admin/manage-exams" class="btn btn-outline-secondary d-flex align-items-center gap-1">
+                        <i class="bi bi-gear"></i> Manage
+                    </a>
+                    <a href="/admin/exam-reports" class="btn btn-outline-primary d-flex align-items-center gap-1">
+                        <i class="bi bi-bar-chart"></i> Reports
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Welcome banner -->
-    <div class="card mb-3 border-0 shadow-sm" style="background: linear-gradient(135deg, #0d6efd 0%, #5ab1ff 100%);">
-        <div class="card-body text-white">
+    <div class="card mb-4 border-0 welcome-banner">
+        <div class="card-body text-white position-relative">
             <div class="row align-items-center g-3">
                 <div class="col-12 col-lg-8">
-                    <h4 class="mb-1">Welcome back, Admin</h4>
+                    <h4 class="mb-1 fw-bold">Welcome back, Admin</h4>
                     <p class="mb-0 opacity-75">Create, manage and monitor exams with the tools below.</p>
                 </div>
                 <div class="col-12 col-lg-4">
                     <div class="d-grid d-md-flex justify-content-md-end gap-2">
-                        <a href="/admin/create-exam" class="btn btn-light text-primary"><i class="bi bi-plus-circle"></i> New Exam</a>
-                        <a href="/admin/manage-categories" class="btn btn-outline-light"><i class="bi bi-tags"></i> Categories</a>
+                        <a href="/admin/create-exam" class="btn btn-light text-primary fw-medium">
+                            <i class="bi bi-plus-circle me-1"></i> New Exam
+                        </a>
+                        <a href="/admin/manage-categories" class="btn btn-outline-light fw-medium">
+                            <i class="bi bi-tags me-1"></i> Categories
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row g-3">
-        <!-- Stats cards -->
+    <!-- Stats cards -->
+    <div class="row g-4 mb-4">
         <div class="col-12 col-sm-6 col-lg-3">
-            <div class="card shadow-sm h-100 border-0">
+            <div class="stat-card shadow-sm h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted">Exams</h6>
-                            <h3 class="mb-0"><%= exams %></h3>
+                            <h6 class="text-muted text-uppercase fw-medium fs-7">Exams</h6>
+                            <h3 class="mb-0 fw-bold"><%= exams %></h3>
                         </div>
                         <div class="dash-icon bg-primary-subtle text-primary">
                             <i class="bi bi-journal-text"></i>
                         </div>
                     </div>
-                    <small class="text-muted">Total exams created</small>
+                    <div class="mt-3">
+                        <small class="text-muted">Total exams created</small>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="col-12 col-sm-6 col-lg-3">
-            <div class="card shadow-sm h-100 border-0">
+            <div class="stat-card shadow-sm h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted">Submissions</h6>
-                            <h3 class="mb-0"><%= submissions %></h3>
+                            <h6 class="text-muted text-uppercase fw-medium fs-7">Submissions</h6>
+                            <h3 class="mb-0 fw-bold"><%= submissions %></h3>
                         </div>
                         <div class="dash-icon bg-success-subtle text-success">
                             <i class="bi bi-clipboard-check"></i>
                         </div>
                     </div>
-                    <small class="text-muted">Completed submissions</small>
+                    <div class="mt-3">
+                        <small class="text-muted">Completed submissions</small>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="col-12 col-sm-6 col-lg-3">
-            <div class="card shadow-sm h-100 border-0">
+            <div class="stat-card shadow-sm h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted">Categories</h6>
-                            <h3 class="mb-0"><%= categories %></h3>
+                            <h6 class="text-muted text-uppercase fw-medium fs-7">Categories</h6>
+                            <h3 class="mb-0 fw-bold"><%= categories %></h3>
                         </div>
                         <div class="dash-icon bg-info-subtle text-info">
                             <i class="bi bi-tags"></i>
                         </div>
                     </div>
-                    <small class="text-muted"><a href="/admin/manage-categories">Manage categories</a></small>
+                    <div class="mt-3">
+                        <small class="text-muted"><a href="/admin/manage-categories" class="text-decoration-none fw-medium">Manage categories</a></small>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="col-12 col-sm-6 col-lg-3">
-            <div class="card shadow-sm h-100 border-0">
+            <div class="stat-card shadow-sm h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted">Active Exams</h6>
-                            <h3 class="mb-0"><%= recentExams.filter(e => e.isActive).length %></h3>
+                            <h6 class="text-muted text-uppercase fw-medium fs-7">Active Exams</h6>
+                            <h3 class="mb-0 fw-bold"><%= recentExams.filter(e => e.isActive).length %></h3>
                         </div>
                         <div class="dash-icon bg-warning-subtle text-warning">
                             <i class="bi bi-play-circle"></i>
                         </div>
                     </div>
-                    <div class="mt-2">
-                        <div class="progress" style="height: 6px;">
+                    <div class="mt-3">
+                        <div class="progress" style="height: 8px;">
                             <% const total = recentExams.length || 1; const act = recentExams.filter(e => e.isActive).length; const pct = Math.round((act/total)*100); %>
                             <div class="progress-bar bg-warning" role="progressbar" style="width: <%= pct %>%" aria-valuenow="<%= pct %>" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        <small class="text-muted">Active ratio: <%= pct %>%</small>
+                        <small class="text-muted mt-1 d-block">Active ratio: <%= pct %>%</small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mt-4">
+    <!-- Recent Exams Table -->
+    <div class="row">
         <div class="col-12 col-xxl-8">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
-                        <h5 class="card-title mb-0">Recent Exams</h5>
+            <div class="table-container shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                        <h5 class="card-title mb-0 fw-bold">Recent Exams</h5>
                         <div class="d-flex flex-column flex-md-row gap-2 w-100 w-md-auto">
                             <div class="btn-group" role="group" aria-label="Filter exams">
                                 <button type="button" class="btn btn-outline-secondary btn-sm active" data-status="">All</button>
@@ -128,17 +417,19 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
+                        <table class="table table-hover align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>Title</th>
-                                    <th>Subject</th>
-                                    <th>Category</th>
-                                    <th>Questions</th>
-                                    <th>Duration</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
+                                    <th><b>Title</b></th>
+                                    <th><b>Subject</b></th>
+                                    <th><b>Category</b></th>
+                                    <th><b>Questions</b></th>
+                                    <th><b>Duration</b></th>
+                                    <th><b>Status</b></th>
+                                    <th><b>Created</b></th>
                                 </tr>
                             </thead>
                             <tbody id="dashExamBody">
@@ -174,7 +465,7 @@
                                         </tr>
                                     <% }) %>
                                 <% } else { %>
-                                    <tr><td colspan="7" class="text-center">No recent exams</td></tr>
+                                    <tr><td colspan="7" class="text-center py-4">No recent exams</td></tr>
                                 <% } %>
                             </tbody>
                         </table>
@@ -182,18 +473,17 @@
                 </div>
             </div>
         </div>
-
-        
     </div>
- </div>
- </div>
+</div>
 
 <%- include('../partials/footer') %>
+
 <script>
   (function(){
     const input = document.getElementById('dashExamSearch');
     const filterButtons = document.querySelectorAll('[data-status]');
     let currentStatus = '';
+    
     function apply() {
       const q = (input && input.value ? input.value : '').toLowerCase();
       document.querySelectorAll('#dashExamBody tr').forEach(tr => {
@@ -204,7 +494,9 @@
         tr.style.display = (byText && byStatus) ? '' : 'none';
       });
     }
+    
     if (input) input.addEventListener('input', apply);
+    
     filterButtons.forEach(btn => {
       btn.addEventListener('click', function(){
         filterButtons.forEach(b => b.classList.remove('active'));
@@ -213,6 +505,7 @@
         apply();
       });
     });
+    
     // Live updates for dashboard
     try {
       const socket = io();
