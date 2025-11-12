@@ -39,7 +39,7 @@
                                 <i class="bi bi-shield-lock"></i> Admin: Manage Exams
                             </a>
                         <% } else { %>
-                            <a href="/exams/take/<%= exam._id %>" class="btn btn-primary w-100">
+                            <a href="/exams/take/<%= exam._id %>" class="btn btn-primary w-100 start-exam-btn" data-exam-id="<%= exam._id %>">
                                 <i class="bi bi-play-circle"></i> Start Exam
                             </a>
                         <% } %>
@@ -60,6 +60,82 @@ try {
     });
   }
 } catch (e) {}
+
+// Auto fullscreen on Start Exam button click
+(function() {
+  // Cross-platform fullscreen request function
+  function requestFullscreen(element) {
+    if (!element) element = document.documentElement;
+    
+    // Try standard API first
+    if (element.requestFullscreen) {
+      return element.requestFullscreen().catch(err => {
+        console.log('Standard fullscreen failed:', err);
+        return null;
+      });
+    }
+    
+    // WebKit (Safari, Chrome on iOS)
+    if (element.webkitRequestFullscreen) {
+      return element.webkitRequestFullscreen().catch(err => {
+        console.log('WebKit fullscreen failed:', err);
+        return null;
+      });
+    }
+    
+    // WebKit (iOS Safari)
+    if (element.webkitEnterFullscreen) {
+      element.webkitEnterFullscreen();
+      return Promise.resolve();
+    }
+    
+    // MS (IE/Edge)
+    if (element.msRequestFullscreen) {
+      return element.msRequestFullscreen().catch(err => {
+        console.log('MS fullscreen failed:', err);
+        return null;
+      });
+    }
+    
+    // Mozilla (Firefox)
+    if (element.mozRequestFullScreen) {
+      return element.mozRequestFullScreen().catch(err => {
+        console.log('Mozilla fullscreen failed:', err);
+        return null;
+      });
+    }
+    
+    return Promise.reject('Fullscreen not supported');
+  }
+
+  // Check if already in fullscreen
+  function isFullscreen() {
+    return !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  }
+
+  // Handle Start Exam button clicks
+  document.querySelectorAll('.start-exam-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const examUrl = this.getAttribute('href');
+      
+      // Mark that we should request fullscreen on exam page load
+      // Use a timestamp to track when the request was made
+      sessionStorage.setItem('requestFullscreenOnLoad', 'true');
+      sessionStorage.setItem('fullscreenRequestTime', Date.now().toString());
+      
+      // Don't request fullscreen here - it will be lost during navigation
+      // Instead, navigate immediately and let the exam page handle it
+      // The user gesture context will be preserved via sessionStorage
+      window.location.href = examUrl;
+    });
+  });
+})();
 </script>
 
 <%- include('../partials/footer') %>
